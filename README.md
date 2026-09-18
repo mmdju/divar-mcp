@@ -42,6 +42,54 @@ Notes for agent builders:
 - Results are **capped** (default 10, max 24) to protect agent context. Persian queries are normalized (yeh/kaf folding, Persian digits, ZWNJ variants).
 - See **[examples/sample-calls.md](examples/sample-calls.md)** for six copy-paste conversation flows, and **[docs/tools.md](docs/tools.md)** for the full parameter reference.
 
+## What it feels like
+
+Three real flows (full copy-paste versions in [examples/sample-calls.md](examples/sample-calls.md)):
+
+**1. Best under budget.** You type (in Persian):
+
+```
+پراید زیر ۳۰۰ میلیون چیه؟
+```
+
+Agent calls `find_best_value` (`query` + `budget_toman`). You get 2-3 ranked picks with price, district, photo count, ad URL and a one-line why each. Plain search only walks the pages you ask for — best-value walks up to 3 pages until the budget is exhausted.
+
+**2. Rental with real filters.** You type (in Persian):
+
+```
+خونه دوخوابه اجاره تو تهران می‌خوام.
+```
+
+Agent calls `search_ads` (`category: apartment-rent`, `rooms`, `min_area`). You get deposit (rahn), monthly rent, size, rooms, district and URL.
+
+**3. Which one?** You type (in Persian):
+
+```
+بین این دو تا ۲۰۷ کدوم؟ `abc123` یا `def456`؟
+```
+
+Agent calls `compare_ads`. You get price spread plus only the specs that actually differ — identical rows are dropped.
+
+## Filters at a glance
+
+Condensed from [docs/tools.md](docs/tools.md) — the full parameter table lives there.
+
+**Basics:** `query`, `category` (`light`, `mobile-phones`, `apartment-rent`…), `city` or `cities` (up to 5), `districts`, `min/max_price_toman`, `sort` (`newest` · `cheapest` · `most_expensive`), `page` (1-based, max 10, walks real pages), `limit` (default 10, max 24), `only_photo`, `only_video` (page-level — the API has no server-side video filter).
+
+**Cars:** `brand_model` (exact model, resolved from Divar's own list — e.g. Peugeot 206), `min/max_mileage_km`.
+
+**Phones:** `brand_model`, `condition` (`new` · `used`), `storage_gb`, `ram_gb`, `sim_count`, `installment` — plus `*_exact` variants to pin fuzzy values.
+
+**Apartment rent:** `min/max_area`, `rooms`, `min/max_deposit_toman`, `min/max_rent_toman`, `parking`, `elevator`, `store`, `balcony`, `business_type` (`personal` · `real-estate-agent`).
+
+**Deal type:** `exchange` (`only_exchanges` · `exclude_exchanges`), `seller_type` (`personal` · `marketplace`).
+
+> **Deliberately absent:** urgent-only, shop-only search, car production year, server-side video-only. Probe-tested — they do nothing on the API, so they stay out rather than faked.
+
+## How it works
+
+`AI agent → POST /mcp (no key) → stateless worker → Divar public web API → small cards back (Toman, district, URL).` No sessions, no accounts, no database — only a short-lived response cache. Details calls are paced (2s + backoff). Full diagram in [docs/architecture.md](docs/architecture.md).
+
 ## Trust, verified
 
 Don't take my word for it - check the live server yourself:
