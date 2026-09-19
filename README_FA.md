@@ -37,10 +37,10 @@
 - جستجوهای مبهم رو با **`divar_suggest`** شروع کن تا عبارت واقعی، slug دسته و آیدی شهر بگیری.
 - هرچی **بودجه** یا کلمه **«بهترین»** داره با **`find_best_value`** برو — سرچ ساده فقط همون صفحه‌هایی رو می‌بینه که بگی.
 - مرتب‌سازی واقعیه: **`newest` · `cheapest` · `most_expensive`**. با بودجه `sort: cheapest` بده تا ارزون‌ترین کل نتایج رو ببینی.
-- اجاره آپارتمان **فیلترهای خونه** داره (متراژ، اتاق، ودیعه، اجاره، پارکینگ، آسانسور، انباری، بالکن، نوع فروشنده). ماشین و گوشی **`brand_model`** دارن که از لیست مدل‌های خود دیوار پیدا میشه.
+- خونه **فیلتر واقعی** داره، هم **اجاره** (`apartment-rent`) هم **خرید** (`apartment-sell`، `house-villa-sell`، `office-sell`، `shop-sell`، `plot-old`…): متراژ، اتاق، ودیعه (رهن) + اجاره ماهانه برای اجاره، و پارکینگ / آسانسور / انباری / بالکن. هر دسته خرید یه زیرمجموعه تأییدشده رو قبول می‌کنه. ماشین و گوشی **`brand_model`** دارن که از لیست مدل‌های خود دیوار پیدا میشه.
 - بعضی فیلترهای رابط دیوار **روی API هیچ کاری نمی‌کنن** (فقط فوری، فقط فروشگاه، سال تولید ماشین) — پروب شدن و عمدا گذاشته نشدن تا الکی نباشن. لیست واقعی‌ها تو **[docs/tools.md](docs/tools.md)** هست.
 - نتیجه‌ها **سقف دارن** (پیش‌فرض ۱۰، حداکثر ۲۴) تا کانتکست ایجنت حفظ بشه. فارسی هم مرتب میشه (ی/ک عربی، ارقام فارسی، نیم‌فاصله).
-- **شش تا مکالمه آماده** کپی-پیست تو **[examples/sample-calls.md](examples/sample-calls.md)** هست، و مرجع کامل پارامترها تو **[docs/tools.md](docs/tools.md)**.
+- **هفت تا مکالمه آماده** کپی-پیست تو **[examples/sample-calls.md](examples/sample-calls.md)** هست، و مرجع کامل پارامترها تو **[docs/tools.md](docs/tools.md)**.
 
 ## حسش چیه
 
@@ -60,7 +60,7 @@
 خونه دوخوابه اجاره تو تهران می‌خوام.
 ```
 
-ایجنت `search_ads` رو صدا می‌زنه (`category: apartment-rent`، `rooms`، `min_area`). ودیعه، اجاره ماهانه، متراژ، اتاق، محله و لینک می‌گیری.
+ایجنت `search_ads` رو صدا می‌زنه (`category: apartment-rent`، `rooms`، `min_size_sqm`). ودیعه، اجاره ماهانه، متراژ، اتاق، محله و لینک می‌گیری.
 
 **۳. کدومشون؟** می‌نویسی:
 
@@ -78,11 +78,11 @@
 
 **ماشین:** `brand_model` (مدل دقیق از لیست خود دیوار)، `min/max_mileage_km`.
 
-**گوشی:** `brand_model`، `condition` (`new` · `used`)، `storage_gb`، `ram_gb`، `sim_count`، `installment` — به‌علاوه `*_exact` برای قفل کردن مقادیر تقریبی.
+**گوشی:** `brand_model`، `condition` (`new` · `like-new` · `used` · `repair-needed`)، `min/max_storage_gb`، `min/max_ram_gb`، `color`، `sim_slots` (`1` · `2` · `3+`)، `installment`.
 
-**اجاره آپارتمان:** `min/max_area`، `rooms`، `min/max_deposit_toman`، `min/max_rent_toman`، `parking`، `elevator`، `store`، `balcony`، `business_type` (`personal` · `real-estate-agent`).
+**خونه (اجاره + خرید):** `min/max_size_sqm`، `rooms` (آرایه شمارش فارسی، مثلاً `["سه"]`)، `parking`، `elevator`، `warehouse`، `balcony`. دسته‌های اجاره (`apartment-rent`) علاوه بر اینا `min/max_credit_toman` (ودیعه) و `min/max_rent_toman` هم می‌گیرن. دسته‌های خرید: `apartment-sell`، `house-villa-sell`، `residential-sell`، `commercial-sell`، `office-sell`، `shop-sell`، `plot-old` — هر کدوم یه زیرمجموعه تأییدشده رو قبول می‌کنن (slugهای `-sale` به `-sell` تبدیل می‌شن).
 
-**نوع معامله:** `exchange` (`only_exchanges` · `exclude_exchanges`)، `seller_type` (`personal` · `marketplace`).
+**نوع معامله:** `exchange` (`only_exchanges` · `exclude_exchanges`)، `seller_type` (`personal` · `shop` · `real-estate-business`).
 
 > **عمداً نیست:** فقط فوری، فقط فروشگاه، سال تولید ماشین، فقط ویدیو سمت سرور. پروب شدن — روی API هیچ کاری نمی‌کنن، پس به‌جای الکی بودن حذف شدن.
 

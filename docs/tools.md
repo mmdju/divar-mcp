@@ -9,7 +9,7 @@ Shared conventions:
 - `limit` - how many items to return (default 10, max 24).
 - `page` - 1-based page number. Page 2+ walks real pages (pagination continuation is handled server-side).
 - `city` - English name (`tehran`, `mashhad`), Persian name or numeric id. `cities` takes up to 5 at once.
-- `category` - Divar slug, e.g. `light` (cars), `mobile-phones`, `apartment-rent`. Ask `divar_suggest` when unsure.
+- `category` - Divar slug, e.g. `light` (cars), `mobile-phones`, `apartment-rent`, `apartment-sell`. Ask `divar_suggest` when unsure.
 
 ## `divar_suggest`
 
@@ -20,43 +20,64 @@ Vague wording to **real search terms, category slugs, city ids**. Call first whe
 | `query` | string | **yes** | What the user typed, e.g. `پراید`, `two-bedroom` |
 | `city` | string | no | City name or id. Default `tehran` |
 
-Returns: `categories` (slug + title + hint), `cities` (name + id), `districts` for the city, `category_filters` (the only extra keys `search_ads` accepts).
+Returns: `categories` (slug + title + hint), `cities` (name + id), `districts` for the city, `guessed_category` (the leaf your wording most likely means - buy vs rent vs cars vs phones), and `category_filters` (per-leaf allow-list: the only extra keys `search_ads` accepts for that category).
 
 ## `search_ads`
 
 Search ads, get **compact cards**: price in Toman, district, badges, photo/video flags, ad URL.
 
-| Param | Type | Required | Notes |
-|---|---|---|---|
-| `query` | string | no | Persian or English, e.g. `پژو 206`, `iphone 13` |
-| `category` | string | no | Slug, e.g. `light`, `mobile-phones`, `apartment-rent` |
-| `city` | string | no | Default `tehran` |
-| `cities` | string[] | no | Up to 5 cities at once |
-| `districts` | (string\|number)[] | no | District ids or exact names |
-| `min_price_toman` | number | no | Minimum in Toman |
-| `max_price_toman` | number | no | Maximum in Toman |
-| `sort` | string | no | `newest` · `cheapest` · `most_expensive` |
-| `page` | number | no | 1-based page number (default 1, max 10) |
-| `limit` | number | no | Default 10, max 24 |
-| `only_photo` | boolean | no | Only ads with at least one photo |
-| `only_video` | boolean | no | Filters the **fetched page** - Divar's API has no server-side video filter |
-| `exchange` | string | no | `only_exchanges` = swap-only · `exclude_exchanges` = hide swaps |
-| `seller_type` | string | no | `personal` = private seller · `marketplace` = shop |
-| `brand_model` | string | no | Exact model, resolved from Divar's own list. Cars + phones only. Unknown text falls back to plain text search |
-| `min_mileage_km` / `max_mileage_km` | number | no | Car mileage range in km. Cars only |
-| `condition` | string | no | Phones: `new` · `used` (`*_exact` for strict match) |
-| `storage_gb` | number | no | Phones: storage in GB (`storage_gb_exact` for strict match) |
-| `ram_gb` | number | no | Phones: RAM in GB (`ram_gb_exact` for strict match) |
-| `sim_count` | number | no | Phones: `1` · `2` (`sim_count_exact` for strict match) |
-| `installment` | boolean | no | Phones: installment sale (`installment_exact` for strict match) |
-| `min_area` / `max_area` | number | no | Apartment rent: size in sqm |
-| `rooms` | string | no | Apartment rent: Persian count, e.g. `دو`, `سه` |
-| `min_deposit_toman` / `max_deposit_toman` | number | no | Apartment rent: deposit (rahn) in Toman |
-| `min_rent_toman` / `max_rent_toman` | number | no | Apartment rent: monthly rent in Toman |
-| `parking` / `elevator` / `store` / `balcony` | boolean | no | Apartment rent amenities |
-| `business_type` | string | no | Apartment rent: `personal` · `real-estate-agent` |
+Which extra keys are honored **depends on the category** - each leaf has its own verified allow-list (returned by `divar_suggest` as `category_filters`). Keys a leaf does not support are dropped, not faked.
 
-Deliberately absent (probe-tested, do nothing on the API): urgent-only, shop-only search, car production year, server-side video-only. Fuzzy phone values are expanded client-side (`*_exact` pins them down).
+**Basics (all categories):**
+
+| Param | Type | Notes |
+|---|---|---|
+| `query` | string | Persian or English, e.g. `پژو 206`, `iphone 13` |
+| `category` | string | Slug, e.g. `light`, `mobile-phones`, `apartment-rent`, `apartment-sell` |
+| `city` | string | Default `tehran` |
+| `cities` | string[] | Up to 5 cities at once |
+| `districts` | (string\|number)[] | District ids or exact names |
+| `min_price_toman` / `max_price_toman` | number | Price window in Toman |
+| `sort` | string | `newest` · `cheapest` · `most_expensive` |
+| `exchange` | string | `only_exchanges` = swap-only · `exclude_exchanges` = hide swaps |
+| `seller_type` | string | `personal` · `shop` (goods) · `real-estate-business` (property). Routed to the leaf's real seller filter |
+| `only_photo` | boolean | Only ads with at least one photo |
+| `only_video` | boolean | Filters the **fetched page** - Divar's API has no server-side video filter |
+| `page` | number | 1-based (default 1, max 10) |
+| `limit` | number | Default 10, max 24 |
+
+**Cars (`light`, alias `cars`/`vehicles`):**
+
+| Param | Type | Notes |
+|---|---|---|
+| `brand_model` | string | Exact model, resolved from Divar's own list. Unknown text falls back to plain text search |
+| `min_mileage_km` / `max_mileage_km` | number | Mileage range in km |
+
+**Phones (`mobile-phones`):**
+
+| Param | Type | Notes |
+|---|---|---|
+| `brand_model` | string | Exact model from Divar's list |
+| `condition` | string | `new` · `like-new` · `used` · `repair-needed` |
+| `min_storage_gb` / `max_storage_gb` | number | Internal storage window in GB |
+| `min_ram_gb` / `max_ram_gb` | number | RAM window in GB |
+| `color` | string | Base color, Persian or English |
+| `sim_slots` | string | `1` · `2` · `3+` |
+| `installment` | boolean | Installment sale only |
+
+**Homes - rent (`apartment-rent`, `residential-rent`) and buy (`apartment-sell`, `house-villa-sell`, `residential-sell`, `commercial-sell`, `office-sell`, `shop-sell`, `plot-old`):**
+
+| Param | Type | Notes |
+|---|---|---|
+| `min_size_sqm` / `max_size_sqm` | number | Area window in sqm |
+| `rooms` | string[] | Room-count words in Persian, e.g. `["دو"]`, `["سه"]` |
+| `min_credit_toman` / `max_credit_toman` | number | **Rent only:** deposit (rahn) window in Toman |
+| `min_rent_toman` / `max_rent_toman` | number | **Rent only:** monthly rent window in Toman |
+| `parking` / `elevator` / `warehouse` / `balcony` | boolean | Amenities |
+
+Each buy leaf honors a **verified subset** of the home keys - e.g. `elevator` is valid on `apartment-sell`/`office-sell` but not on `house-villa-sell`; `rooms` is valid on `apartment-sell`/`office-sell`/`shop-sell` but not on `residential-sell`/`commercial-sell`/`plot-old`. Anything a leaf rejects upstream is dropped rather than sent. `-sale` slugs (`apartment-sale`, `house-villa-sale`, …) fold to their `-sell` leaf automatically.
+
+Deliberately absent (probe-tested, do nothing on the API): urgent-only, shop-only search, car production year, server-side video-only.
 
 Budget questions (`"best X under Y"`) belong to **`find_best_value`**, not here - plain search only walks the pages you ask for.
 

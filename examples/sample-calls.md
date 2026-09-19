@@ -1,6 +1,6 @@
 # Sample conversations (copy-paste)
 
-Six flows that show what the server is good at. Each one is **user asks → agent calls → user gets**. Prices below are examples from testing, not live quotes - always open the ad URL before acting.
+Seven flows that show what the server is good at. Each one is **user asks → agent calls → user gets**. Prices below are examples from testing, not live quotes - always open the ad URL before acting.
 
 ---
 
@@ -31,7 +31,7 @@ User:
 Agent calls:
 
 ```json
-{ "tool": "search_ads", "arguments": { "query": "آپارتمان", "category": "apartment-rent", "rooms": "دو", "min_area": 70, "limit": 10 } }
+{ "tool": "search_ads", "arguments": { "query": "آپارتمان", "category": "apartment-rent", "rooms": ["دو"], "min_size_sqm": 70, "limit": 10 } }
 ```
 
 User gets: **matching rentals** with deposit (rahn), monthly rent, size, rooms, district and ad URL.
@@ -99,6 +99,22 @@ Agent calls:
 ```
 
 User gets: **swap-only ads from private sellers**, with district and ad URL each.
+
+---
+
+## 7. "Three-bedroom to buy in Tehran"
+
+User:
+
+> آپارتمان سه‌خوابه برای خرید تو تهران می‌خوام.
+
+`divar_suggest` reads the buy wording (`خرید`/`فروش` + `آپارتمان`) and returns `guessed_category: apartment-sell`. Then:
+
+```json
+{ "tool": "search_ads", "arguments": { "query": "آپارتمان", "category": "apartment-sell", "rooms": ["سه"], "min_size_sqm": 80, "max_price_toman": 8000000000, "sort": "cheapest", "limit": 10 } }
+```
+
+User gets: **buy listings** with price, size, rooms, district and ad URL. Buy leaves honor a verified subset of the home filters (`apartment-sell` takes size, rooms, parking, elevator, warehouse, balcony); keys a leaf rejects upstream are dropped, not faked.
 
 ---
 

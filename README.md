@@ -37,10 +37,10 @@ Notes for agent builders:
 - Start vague queries with **`divar_suggest`** to get real search terms, a `category` slug and a city id.
 - Anything with a **budget** or the word **"best"** goes to **`find_best_value`** - plain search only walks the pages you ask for.
 - Sorting is real: **`newest` · `cheapest` · `most_expensive`**. Pass `sort: cheapest` with a budget to see the global cheapest.
-- Apartment rent adds **home filters** (size, rooms, deposit, rent, parking, elevator, store, balcony, business type). Cars and phones add **`brand_model`** resolved from Divar's own model list.
+- Homes add **real filters** for both **rent** (`apartment-rent`) and **buy** (`apartment-sell`, `house-villa-sell`, `office-sell`, `shop-sell`, `plot-old`…): size (sqm), rooms, deposit (rahn) + monthly rent for rentals, and parking / elevator / warehouse / balcony. Each buy leaf honors a verified subset. Cars and phones add **`brand_model`** resolved from Divar's own model list.
 - Some Divar UI filters do **nothing on the API** (urgent-only, shop-only, car year) - they were probe-tested and left out on purpose rather than faked. See **[docs/tools.md](docs/tools.md)** for what is real.
 - Results are **capped** (default 10, max 24) to protect agent context. Persian queries are normalized (yeh/kaf folding, Persian digits, ZWNJ variants).
-- See **[examples/sample-calls.md](examples/sample-calls.md)** for six copy-paste conversation flows, and **[docs/tools.md](docs/tools.md)** for the full parameter reference.
+- See **[examples/sample-calls.md](examples/sample-calls.md)** for seven copy-paste conversation flows, and **[docs/tools.md](docs/tools.md)** for the full parameter reference.
 
 ## What it feels like
 
@@ -60,7 +60,7 @@ Agent calls `find_best_value` (`query` + `budget_toman`). You get 2-3 ranked pic
 خونه دوخوابه اجاره تو تهران می‌خوام.
 ```
 
-Agent calls `search_ads` (`category: apartment-rent`, `rooms`, `min_area`). You get deposit (rahn), monthly rent, size, rooms, district and URL.
+Agent calls `search_ads` (`category: apartment-rent`, `rooms`, `min_size_sqm`). You get deposit (rahn), monthly rent, size, rooms, district and URL.
 
 **3. Which one?** You type (in Persian):
 
@@ -78,11 +78,11 @@ Condensed from [docs/tools.md](docs/tools.md) — the full parameter table lives
 
 **Cars:** `brand_model` (exact model, resolved from Divar's own list — e.g. Peugeot 206), `min/max_mileage_km`.
 
-**Phones:** `brand_model`, `condition` (`new` · `used`), `storage_gb`, `ram_gb`, `sim_count`, `installment` — plus `*_exact` variants to pin fuzzy values.
+**Phones:** `brand_model`, `condition` (`new` · `like-new` · `used` · `repair-needed`), `min/max_storage_gb`, `min/max_ram_gb`, `color`, `sim_slots` (`1` · `2` · `3+`), `installment`.
 
-**Apartment rent:** `min/max_area`, `rooms`, `min/max_deposit_toman`, `min/max_rent_toman`, `parking`, `elevator`, `store`, `balcony`, `business_type` (`personal` · `real-estate-agent`).
+**Homes (rent + buy):** `min/max_size_sqm`, `rooms` (Persian count array, e.g. `["سه"]`), `parking`, `elevator`, `warehouse`, `balcony`. Rent leaves (`apartment-rent`) also take `min/max_credit_toman` (deposit) and `min/max_rent_toman`. Buy leaves: `apartment-sell`, `house-villa-sell`, `residential-sell`, `commercial-sell`, `office-sell`, `shop-sell`, `plot-old` — each honors a verified subset (`-sale` slugs fold to `-sell`).
 
-**Deal type:** `exchange` (`only_exchanges` · `exclude_exchanges`), `seller_type` (`personal` · `marketplace`).
+**Deal type:** `exchange` (`only_exchanges` · `exclude_exchanges`), `seller_type` (`personal` · `shop` · `real-estate-business`).
 
 > **Deliberately absent:** urgent-only, shop-only search, car production year, server-side video-only. Probe-tested — they do nothing on the API, so they stay out rather than faked.
 
