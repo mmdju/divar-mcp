@@ -122,5 +122,5 @@ User gets: **buy listings** with price, size, rooms, district and ad URL. Buy le
 
 - Vague wording first goes to **`divar_suggest`** - it turns slang into real search terms plus a `category` slug and city id.
 - **Always link the ad URL** in whatever you show the user. Ads sell fast and prices are negotiable.
-- Tool results are **capped** (default 10, max 24) to protect agent context - ask for more only when needed.
+- Tool results are **capped** (default 10, max 30) to protect agent context - ask for more only when needed.
 - **No phone numbers, ever.** If the user wants to call, send them the ad URL.

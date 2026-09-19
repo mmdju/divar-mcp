@@ -2,12 +2,12 @@
 
 Input/output reference for all **6 tools**. Types only - no internals. For conversation flows, see [examples/sample-calls.md](../examples/sample-calls.md).
 
-Every tool is **read-only** and needs **no credentials**. Result lists are **capped** (default 10, max 24). All prices are in **Toman** (`price_toman: null` means negotiable - never 0).
+Every tool is **read-only** and needs **no credentials**. Result lists are **capped** (default 10, max 30). All prices are in **Toman** (`price_toman: null` means negotiable - never 0).
 
 Shared conventions:
 
-- `limit` - how many items to return (default 10, max 24).
-- `page` - 1-based page number. Page 2+ walks real pages (pagination continuation is handled server-side).
+- `limit` - how many items to return (default 10, max 30).
+- `page` - 1-based page number, max 50. Page 2+ walks real pages (pagination continuation is handled server-side), so deeper pages cost extra requests.
 - `city` - English name (`tehran`, `mashhad`), Persian name or numeric id. `cities` takes up to 5 at once.
 - `category` - Divar slug, e.g. `light` (cars), `mobile-phones`, `apartment-rent`, `apartment-sell`. Ask `divar_suggest` when unsure.
 
@@ -43,8 +43,8 @@ Which extra keys are honored **depends on the category** - each leaf has its own
 | `seller_type` | string | `personal` · `shop` (goods) · `real-estate-business` (property). Routed to the leaf's real seller filter |
 | `only_photo` | boolean | Only ads with at least one photo |
 | `only_video` | boolean | Filters the **fetched page** - Divar's API has no server-side video filter |
-| `page` | number | 1-based (default 1, max 10) |
-| `limit` | number | Default 10, max 24 |
+| `page` | number | 1-based (default 1, max 50) |
+| `limit` | number | Default 10, max 30 |
 
 **Cars (`light`, alias `cars`/`vehicles`):**
 

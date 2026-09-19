@@ -39,7 +39,7 @@ Notes for agent builders:
 - Sorting is real: **`newest` · `cheapest` · `most_expensive`**. Pass `sort: cheapest` with a budget to see the global cheapest.
 - Homes add **real filters** for both **rent** (`apartment-rent`) and **buy** (`apartment-sell`, `house-villa-sell`, `office-sell`, `shop-sell`, `plot-old`…): size (sqm), rooms, deposit (rahn) + monthly rent for rentals, and parking / elevator / warehouse / balcony. Each buy leaf honors a verified subset. Cars and phones add **`brand_model`** resolved from Divar's own model list.
 - Some Divar UI filters do **nothing on the API** (urgent-only, shop-only, car year) - they were probe-tested and left out on purpose rather than faked. See **[docs/tools.md](docs/tools.md)** for what is real.
-- Results are **capped** (default 10, max 24) to protect agent context. Persian queries are normalized (yeh/kaf folding, Persian digits, ZWNJ variants).
+- Results are **capped** (default 10, max 30) to protect agent context. Persian queries are normalized (yeh/kaf folding, Persian digits, ZWNJ variants).
 - See **[examples/sample-calls.md](examples/sample-calls.md)** for seven copy-paste conversation flows, and **[docs/tools.md](docs/tools.md)** for the full parameter reference.
 
 ## What it feels like
@@ -74,7 +74,7 @@ Agent calls `compare_ads`. You get price spread plus only the specs that actuall
 
 Condensed from [docs/tools.md](docs/tools.md) — the full parameter table lives there.
 
-**Basics:** `query`, `category` (`light`, `mobile-phones`, `apartment-rent`…), `city` or `cities` (up to 5), `districts`, `min/max_price_toman`, `sort` (`newest` · `cheapest` · `most_expensive`), `page` (1-based, max 10, walks real pages), `limit` (default 10, max 24), `only_photo`, `only_video` (page-level — the API has no server-side video filter).
+**Basics:** `query`, `category` (`light`, `mobile-phones`, `apartment-rent`…), `city` or `cities` (up to 5), `districts`, `min/max_price_toman`, `sort` (`newest` · `cheapest` · `most_expensive`), `page` (1-based, max 50, walks real pages), `limit` (default 10, max 30), `only_photo`, `only_video` (page-level — the API has no server-side video filter).
 
 **Cars:** `brand_model` (exact model, resolved from Divar's own list — e.g. Peugeot 206), `min/max_mileage_km`.
 
@@ -110,7 +110,7 @@ Divar's public web API (**undocumented, may change without notice**). This proje
 
 ## Status
 
-**Free public service** on Cloudflare Workers. **Fair use applies** - if you hammer it, you will be rate-limited.
+**Free public service** on Cloudflare Workers. **Fair use applies** - if you hammer it, you will be rate-limited (edge rule, per IP: 60 req/min on `/mcp`, 10-minute block - details in [SECURITY.md](SECURITY.md)). Browser-based MCP clients work too: the endpoint answers CORS preflights.
 
 ## License
 
