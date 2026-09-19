@@ -37,10 +37,12 @@ Notes for agent builders:
 - Start vague queries with **`divar_suggest`** to get real search terms, a `category` slug and a city id.
 - Anything with a **budget** or the word **"best"** goes to **`find_best_value`** - plain search only walks the pages you ask for.
 - Sorting is real: **`newest` · `cheapest` · `most_expensive`**. Pass `sort: cheapest` with a budget to see the global cheapest.
+- **Negotiable ads are not hidden lies**: by default `find_best_value` ranks priced ads only; pass `include_negotiable: true` to surface "توافقی" picks - they come last with `price_toman: null` and a "ask the seller" note. `ad_details` also accepts `detail: "compact"` for a cheap decision card when scanning many ads.
 - Homes add **real filters** for both **rent** (`apartment-rent`) and **buy** (`apartment-sell`, `house-villa-sell`, `office-sell`, `shop-sell`, `plot-old`…): size (sqm), rooms, deposit (rahn) + monthly rent for rentals, and parking / elevator / warehouse / balcony. Each buy leaf honors a verified subset. Cars and phones add **`brand_model`** resolved from Divar's own model list.
 - Some Divar UI filters do **nothing on the API** (urgent-only, shop-only, car year) - they were probe-tested and left out on purpose rather than faked. See **[docs/tools.md](docs/tools.md)** for what is real.
 - Results are **capped** (default 10, max 30) to protect agent context. Persian queries are normalized (yeh/kaf folding, Persian digits, ZWNJ variants).
 - See **[examples/sample-calls.md](examples/sample-calls.md)** for seven copy-paste conversation flows, and **[docs/tools.md](docs/tools.md)** for the full parameter reference.
+- The server also speaks MCP **prompts** (`compare-ads`, `best-under-budget` slash-command templates) and **resources** (`divar://cities`, `divar://category-filters/{slug}`) - reference data without burning a tool call.
 
 ## What it feels like
 

@@ -88,6 +88,7 @@ Budget questions (`"best X under Y"`) belong to **`find_best_value`**, not here 
 | Param | Type | Required | Notes |
 |---|---|---|---|
 | `token` | string | **yes** | The ad token from a card |
+| `detail` | string | no | `compact` = decision facts only (title, price, city, url); `full` = everything (default) |
 
 ## `get_ads_batch`
 
@@ -116,5 +117,24 @@ Shortlist cards for **up to 10 tokens** - feeds `compare_ads`. Dead tokens are r
 | `city` | string | no | Default `tehran` |
 | `category` | string | no | Slug to narrow the hunt |
 | `limit` | number | no | How many picks (default 3, max 10) |
+| `include_negotiable` | boolean | no | Also surface "توافقی" ads: they rank **last** with `price_toman: null` and a why line that says ask the seller (default false) |
 
 For cars and homes: compare the specs yourself - prices are negotiable and ads sell fast.
+
+## Prompts (request templates)
+
+Two ready-made flows a client can offer as slash-commands - the server renders them into a steer message for the agent:
+
+| Prompt | Arguments | Renders into |
+|---|---|---|
+| `compare-ads` | `tokens` (comma-separated, required) | get_ads_batch → compare_ads, with a report of the price spread and real differences |
+| `best-under-budget` | `thing`, `budget` (required), `city` (optional) | divar_suggest → find_best_value, shortlist of URLs at the end |
+
+## Resources (read-only reference data)
+
+Static tables the server can serve on demand - `divar://` URIs, JSON:
+
+- **`divar://cities`** - english slug → numeric city id for every searchable city
+- **`divar://cities-fa`** - Persian name → city id
+- **`divar://category-filters`** - which filter keys each category accepts (sending unknown keys is a 400)
+- **`divar://category-filters/{slug}`** - the same for one category, e.g. `divar://category-filters/apartment-rent`
