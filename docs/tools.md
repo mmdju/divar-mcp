@@ -92,7 +92,7 @@ Budget questions (`"best X under Y"`) belong to **`find_best_value`**, not here 
 
 ## `get_ads_batch`
 
-Shortlist cards for **up to 10 tokens** - feeds `compare_ads`. Repeated tokens are fetched once. A dead token (sold/removed) lands in `missing_tokens`; a token that could not be fetched because Divar was throttling lands in `partial_failures` with the real reason - a throttle is never reported as a sold ad.
+Shortlist cards for **up to 10 tokens** - feeds `compare_ads`. Repeated tokens are fetched once. A dead token (sold/removed) lands in `missing_tokens`; a token that is not even shaped like a Divar ad token lands in `invalid_tokens` (that one is the caller's typo - copy it again, retrying it cannot help); a token that could not be fetched because Divar was throttling lands in `partial_failures` with the real reason - a throttle is never reported as a sold ad. A call whose tokens are all malformed fails as a usage error.
 
 | Param | Type | Required | Notes |
 |---|---|---|---|
@@ -100,7 +100,7 @@ Shortlist cards for **up to 10 tokens** - feeds `compare_ads`. Repeated tokens a
 
 ## `compare_ads`
 
-**2-5 ads side by side**: price spread plus **only the specs that actually differ** (identical rows are dropped). Same split as `get_ads_batch`: `missing_tokens` for ads that are gone, `partial_failures` for ads blocked by a throttle. If fewer than two ads resolve, the error names which token was which.
+**2-5 ads side by side**: price spread plus **only the specs that actually differ** (identical rows are dropped). Same split as `get_ads_batch`: `missing_tokens` for ads that are gone, `invalid_tokens` for tokens that are not Divar ad tokens at all, `partial_failures` for ads blocked by a throttle - a typo is never blamed on Divar. If fewer than two ads resolve, the error names which token was which.
 
 | Param | Type | Required | Notes |
 |---|---|---|---|

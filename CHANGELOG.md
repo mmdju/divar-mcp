@@ -2,6 +2,12 @@
 
 Releases of the **hosted service** (`https://divar-mcp.mmdju.workers.dev/mcp`). Dates are UTC.
 
+## 0.4.1 - 2026-09-20
+
+_Prepared, not deployed: the hosted worker still answers as 0.4.0, so [scripts/verify-live.mjs](scripts/verify-live.mjs) reports the version mismatch until this release is pushed. Every claim below is in the source, none of it is live yet._
+
+- **A mistyped token is no longer blamed on Divar.** A token that cannot be a Divar ad token at all (say `"xy"`) was filed with the throttled ones, so the answer read "some tokens could not be fetched right now (Divar throttling or network) - retry the failed tokens in a moment". Divar was never at fault, and retrying that exact text can never work. Malformed tokens now come back in `invalid_tokens` with a note that says to copy the token again, a call whose tokens are *all* malformed fails as a usage error instead of returning an empty page that hints at the network, and `partial_failures` is left to mean what it says: something on Divar's side went wrong.
+
 ## 0.4.0 - 2026-09-20
 
 _Deployed 2026-09-20, worker version `c995f129`. [scripts/verify-live.mjs](scripts/verify-live.mjs) passes 20/20 against the live endpoint and the deeper remote check 23/23, with every tool schema identical to the source build._
