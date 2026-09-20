@@ -18,7 +18,7 @@ Agent calls:
 
 User gets: **2-3 ranked picks** with price, district, photo count, ad URL and a one-line *why* for each. If the budget fits nothing, the response says so and suggests raising it.
 
-Why this tool: plain search only walks **the pages you ask for** - `find_best_value` walks up to 3 pages until the budget is exhausted, then ranks cheapest-first. Broken listings cannot win that ranking: one page of the same search **without** the price cap rides along as `market_scale`, and prices under 5% of that median are excluded and counted in `placeholder_prices_excluded`. If the budget fits nothing that is really priced, the answer says so and names the real market range instead of ranking 1,000-Toman ads as bargains.
+Why this tool: plain search only walks **the pages you ask for** - `find_best_value` walks up to 3 pages until the budget is exhausted, then ranks cheapest-first. A listing at `۱,۰۰۰ تومان` is a real ad (نقد و اقساط / تماس بگیرید), so it is never hidden - but it cannot win that ranking: it comes back flagged with a `price_note`, ranks after the honestly priced picks, and never sets `cheapest_toman`. One page of the same search **without** the price cap rides along as `market_scale`, which is what makes the answer say *"nothing fitting your budget carries an honest asking price - this query actually costs from X"* instead of calling 1,000-Toman ads bargains.
 
 ---
 
@@ -130,7 +130,7 @@ Agent calls:
 { "tool": "market_price", "arguments": { "token": "xyz789", "max_sample": 48 } }
 ```
 
-User gets: the **median and quartiles of live comparable ads** (the ad's own category, city and title seed the comparison), where this ad sits as a percentile, and a plain verdict (`below_median` / `around_median` / `above_median`). The answer states how many ads it compared, what it dropped (placeholder prices, negotiable ads, ads with no number), and that it is **not** Divar's کارنامه appraisal - plus up to 6 sample ads with URLs so the user can check for themselves.
+User gets: the **median and quartiles of live comparable ads** (the ad's own category, city and title seed the comparison), where this ad sits as a percentile, and a plain verdict (`below_median` / `around_median` / `above_median`). The answer states how many ads it compared, what it kept out of the maths (placeholder prices - listed by token in `sample_ads_placeholder_prices` with the note that judged each one - negotiable ads, ads with no number), and that it is **not** Divar's کارنامه appraisal - plus up to 6 sample ads with URLs so the user can check for themselves.
 
 Why this tool: `compare_ads` answers "which of *these* two?" - `market_price` answers "is this price normal?" against a real sample.
 

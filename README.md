@@ -29,19 +29,20 @@ Then just talk: **"pride under 300 million"**, **"two-bedroom to rent in Tehran"
 | `ad_details` | Everything about one ad: **price, specs (mileage, year, size, rooms), amenities, condition scores, photos, map, expiry, chat flag, seller type - no phone** |
 | `get_ads_batch` | Shortlist cards for **up to 10 tokens** - feeds `compare_ads` |
 | `compare_ads` | "Which of these?" - **only the specs that actually differ**, plus the middle of the set and where each ad sits |
-| `find_best_value` | "Best X under Y Toman" - **ranked picks, cheapest first** |
-| `market_price` | **"Is this price normal?"** - the median of a live sample, with the sample size and what it dropped |
+| `find_best_value` | "Best X under Y Toman" - **ranked picks, cheapest first**, with placeholder prices labelled instead of winning the ranking |
+| `market_price` | **"Is this price normal?"** - the median of a live sample, with the sample size and what it kept out of the maths |
 
 Notes for agent builders:
 
 - **All prices are in Toman** (1 Toman = 10 Rial). Ads marked negotiable return `price_toman: null` - never 0. Prices move and ads sell fast - always link the ad URL so the user can confirm before acting.
+- **Not every number in a price field is a price.** Divar has no "price on request" field, so sellers who will not publish one type a fake number - sort a car or phone search by cheapest and the top of the list is a page of ads at `۱,۰۰۰ تومان` from shops inviting نقد و اقساط / تماس بگیرید. Those ads are real listings and are never hidden, but every one of them carries **`price_is_placeholder`**, a `price_placeholder_kind` (`typed_thousand` · `repeated_digits` · `sentinel_number` · `far_below_market`) and a plain-language `price_note`. A list summarises them in `placeholder_price_ads`, `find_best_value` ranks them after honest asks and never lets one set `cheapest_toman`, and `market_price` shows the ones it kept out of the median in `sample_ads_placeholder_prices`.
 - Start vague queries with **`divar_suggest`** to get real search terms, a `category` slug and a city id.
 - Anything with a **budget** or the word **"best"** goes to **`find_best_value`** - plain search only walks the pages you ask for.
 - Sorting is real: **`newest` · `cheapest` · `most_expensive`**. Pass `sort: cheapest` with a budget to see the global cheapest.
 - **Negotiable ads are not hidden lies**: by default `find_best_value` ranks priced ads only; pass `include_negotiable: true` to surface "توافقی" picks - they come last with `price_toman: null` and a "ask the seller" note. `ad_details` also accepts `detail: "compact"` for a cheap decision card when scanning many ads.
 - Homes add **real filters** for both **rent** (`apartment-rent`) and **buy** (`apartment-sell`, `house-villa-sell`, `office-sell`, `shop-sell`, `plot-old`…): size (sqm), rooms, deposit (rahn) + monthly rent for rentals, and parking / elevator / warehouse / balcony. Each buy leaf honors a verified subset. Cars and phones add **`brand_model`** resolved from Divar's own model list.
 - Some Divar UI filters do **nothing on the API** (urgent-only, shop-only, car year, recent-only) - they were probe-tested and left out on purpose rather than faked. See **[docs/tools.md](docs/tools.md)** for what is real.
-- **A price is only as good as its comparison.** `market_price` says exactly how many ads it compared, drops placeholder listings (anything under 5% of the sample median), excludes negotiable ads from the maths, and refuses to pass a sample of under 8 ads off as a benchmark. It is not Divar's own کارنامه appraisal, and it says so.
+- **A price is only as good as its comparison.** `market_price` says exactly how many ads it compared, keeps placeholder listings out of the median (and lists them by token so you can check), excludes negotiable ads from the maths, and refuses to pass a sample of under 8 ads off as a benchmark. It is not Divar's own کارنامه appraisal, and it says so.
 - `ad_details` reports **`expires_at`** (when Divar takes the ad down) and **`chat_enabled`** (whether the seller can be messaged at all) - two facts that decide whether an ad is still worth chasing, straight from the payload the server already fetched.
 - Results are **capped** (default 10, max 30) to protect agent context. Persian queries are normalized (yeh/kaf folding, Persian digits, ZWNJ variants).
 - `search_ads` takes **`pages: 1..5`** to scan and merge a window of the list in one call (deduplicated, same fetch budget as the `page` walk) - that is the "show me more of this search" mode, instead of issuing `page+1` calls by hand. The answer reports `pages_requested` / `pages_returned` and how many distinct ads were in `candidates`.

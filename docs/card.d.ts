@@ -10,8 +10,21 @@
 export interface AdCard {
   token: string;
   title: string;
-  price_toman: number | null; // null = negotiable / no price, never 0
+  price_toman: number | null; // the seller's own number, verbatim; null = negotiable / no price, never 0
   negotiable: boolean; // true when Divar says توافقی
+  // True when that number is not an asking price. Divar has no "price on request"
+  // field, so sellers who will not publish one type a fake number: "۱,۰۰۰ تومان"
+  // (the whole cheapest page of a car or phone search), a repeated digit like
+  // ۱۱۱,۱۱۱,۱۱۱, or an integer-limit value. The ad is a real listing and stays in
+  // every list - only its price is labelled. price_note explains it in words.
+  price_is_placeholder: boolean;
+  price_placeholder_kind:
+    | "typed_thousand" // at or under 1,000 Toman - "ask me for the price"
+    | "repeated_digits" // ۱۱۱,۱۱۱,۱۱۱ - typed to top a price-sorted list
+    | "sentinel_number" // an int-limit number nobody asks
+    | "far_below_market" // real-looking, but under 5% of the market median this call measured
+    | null;
+  price_note: string | null;
   district: string | null;
   city: string | null; // null when Divar does not say, never a breadcrumb guess
   time_ago: string | null; // "لحظاتی پیش در صادقیه" (row lane only)
@@ -39,6 +52,8 @@ export interface AdDetails extends Omit<AdCard, "badges" | "has_video" | "time_a
   district_slug: string | null; // Latin district slug from webengage
   brand_model: string | null; // canonical model, e.g. "Pride 131 SE"
   price_source: string | null; // "jsonld" | "list row 'قیمت پایه'" | "webengage.price"
+  // Same three price fields as AdCard - a placeholder is a fact about the ad,
+  // not about which lane fetched it.
   monthly_rent_toman: number | null;
   expires_at: string | null; // seo.unavailable_after
   chat_enabled: boolean; // same source as has_chat on this lane
