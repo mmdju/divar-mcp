@@ -5,10 +5,14 @@
 //
 // What it does: lists tools over Streamable HTTP, calls tools/list +
 // tools/call for a search, a details read, a privacy sweep and an
-// invalid-token error path, and asserts the honest-data contract
-// (toman prices, negotiable = null, empty envelope on misses).
-// No source needed.
+// invalid-token error path, asserts the honest-data contract
+// (toman prices, negotiable = null, empty envelope on misses), and compares
+// the version the live service reports against the newest release in this
+// repo's CHANGELOG. No source needed.
+import { readFileSync } from "node:fs";
+
 const ENDPOINT = process.env.DIVAR_MCP_URL ?? "https://divar-mcp.mmdju.workers.dev/mcp";
+const HEALTH = ENDPOINT.replace(/\/mcp\/?$/, "/health");
 const UA = { "user-agent": "divar-mcp-verify/1.0" };
 
 let id = 1;
@@ -45,6 +49,18 @@ async function main() {
     clientInfo: { name: "verify-live", version: "1.0.0" },
   });
   check("handshake", !!init.result?.serverInfo, init.result?.serverInfo?.name ?? "");
+
+  // 0b. Release drift. A stale build speaks perfectly valid MCP, so every
+  // other check here stayed green while the worker ran two releases behind
+  // the docs. /health carries the version for exactly this comparison.
+  const health = await fetch(HEALTH, { headers: UA }).then((r) => r.json()).catch(() => ({}));
+  const live = health.version ?? init.result?.serverInfo?.version ?? "unknown";
+  const newest = readFileSync(new URL("../CHANGELOG.md", import.meta.url), "utf8").match(/^## (\d+\.\d+\.\d+)/m)?.[1];
+  check(
+    "live version matches the newest release in the CHANGELOG",
+    !!newest && live === newest,
+    `live=${live} changelog=${newest ?? "none"}`
+  );
 
   await rpc("notifications/initialized", {});
 
@@ -87,6 +103,14 @@ async function main() {
   const unknown = await rpc("tools/call", { name: "no_such_tool", arguments: {} });
   const utext = unknown.result?.content?.[0]?.text ?? unknown.error?.message ?? "";
   check("unknown tool names alternatives", utext.includes("search_ads"), utext.slice(0, 60));
+
+  // 6. Prompts and resources are documented surface too - the same drift trap.
+  const prompts = await rpc("prompts/list", {}).catch(() => ({}));
+  const promptNames = (prompts.result?.prompts ?? []).map((p) => p.name);
+  check("prompts/list serves the documented templates", promptNames.includes("compare-ads"), promptNames.join(",") || "none");
+  const resources = await rpc("resources/list", {}).catch(() => ({}));
+  const uris = (resources.result?.resources ?? []).map((r) => r.uri);
+  check("resources/list serves divar://cities", uris.includes("divar://cities"), `${uris.length} resources`);
 
   const failed = checks.filter((c) => !c.ok);
   console.log(`\nVERIFY-DONE passed=${checks.length - failed.length} failed=${failed.length}`);

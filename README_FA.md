@@ -39,7 +39,9 @@
 - مرتب‌سازی واقعیه: **`newest` · `cheapest` · `most_expensive`**. با بودجه `sort: cheapest` بده تا ارزون‌ترین کل نتایج رو ببینی.
 - خونه **فیلتر واقعی** داره، هم **اجاره** (`apartment-rent`) هم **خرید** (`apartment-sell`، `house-villa-sell`، `office-sell`، `shop-sell`، `plot-old`…): متراژ، اتاق، ودیعه (رهن) + اجاره ماهانه برای اجاره، و پارکینگ / آسانسور / انباری / بالکن. هر دسته خرید یه زیرمجموعه تأییدشده رو قبول می‌کنه. ماشین و گوشی **`brand_model`** دارن که از لیست مدل‌های خود دیوار پیدا میشه.
 - بعضی فیلترهای رابط دیوار **روی API هیچ کاری نمی‌کنن** (فقط فوری، فقط فروشگاه، سال تولید ماشین) — پروب شدن و عمدا گذاشته نشدن تا الکی نباشن. لیست واقعی‌ها تو **[docs/tools.md](docs/tools.md)** هست.
-- نتیجه‌ها **سقف دارن** (پیش‌فرض ۱۰، حداکثر ۲۴) تا کانتکست ایجنت حفظ بشه. فارسی هم مرتب میشه (ی/ک عربی، ارقام فارسی، نیم‌فاصله).
+- نتیجه‌ها **سقف دارن** (پیش‌فرض ۱۰، حداکثر ۳۰) تا کانتکست ایجنت حفظ بشه. فارسی هم مرتب میشه (ی/ک عربی، ارقام فارسی، نیم‌فاصله).
+- **آگهی‌های توافقی پنهان نمی‌شن**: `find_best_value` به‌طور پیش‌فرض فقط آگهی‌های قیمت‌دار رو رتبه‌بندی می‌کنه؛ با `include_negotiable: true` انتخاب‌های «توافقی» هم میان - آخر همه، با `price_toman: null` و یه خط «از فروشنده بپرس». `ad_details` هم `detail: "compact"` می‌گیره برای یه کارت تصمیم سبک وقتی چند تا آگهی رو اسکن می‌کنی.
+- سرور علاوه بر ابزارها MCP **prompts** هم داره (`compare-ads` و `best-under-budget` برای اسلش‌کامند) و **resources** (`divar://cities`، `divar://category-filters/{slug}`) - داده‌های مرجع بدون سوزوندن یه tool call.
 - **هفت تا مکالمه آماده** کپی-پیست تو **[examples/sample-calls.md](examples/sample-calls.md)** هست، و مرجع کامل پارامترها تو **[docs/tools.md](docs/tools.md)**.
 
 ## حسش چیه
@@ -74,7 +76,7 @@
 
 خلاصه [docs/tools.md](docs/tools.md) — جدول کامل پارامترها همون‌جاست.
 
-**پایه:** `query`، `category` (`light`، `mobile-phones`، `apartment-rent`…)، `city` یا `cities` (تا ۵ شهر)، `districts`، `min/max_price_toman`، `sort` (`newest` · `cheapest` · `most_expensive`)، `page` (از ۱، حداکثر ۱۰، صفحه‌های واقعی)، `limit` (پیش‌فرض ۱۰، حداکثر ۲۴)، `only_photo`، `only_video` (روی صفحه گرفته‌شده — API فیلتر ویدیو سمت سرور نداره).
+**پایه:** `query`، `category` (`light`، `mobile-phones`، `apartment-rent`…)، `city` یا `cities` (تا ۵ شهر)، `districts`، `min/max_price_toman`، `sort` (`newest` · `cheapest` · `most_expensive`)، `page` (از ۱، حداکثر ۵۰، صفحه‌های واقعی — هر call حداکثر ۵ صفحه‌ی تازه واکشی می‌کنه و از کش رایگان می‌گذره، و اگه کوتاه بمونه خودش با `page_note` می‌گه)، `limit` (پیش‌فرض ۱۰، حداکثر ۳۰)، `only_photo`، `only_video` (روی صفحه گرفته‌شده — API فیلتر ویدیو سمت سرور نداره).
 
 **ماشین:** `brand_model` (مدل دقیق از لیست خود دیوار)، `min/max_mileage_km`.
 
@@ -82,7 +84,7 @@
 
 **خونه (اجاره + خرید):** `min/max_size_sqm`، `rooms` (آرایه شمارش فارسی، مثلاً `["سه"]`)، `parking`، `elevator`، `warehouse`، `balcony`. دسته‌های اجاره (`apartment-rent`) علاوه بر اینا `min/max_credit_toman` (ودیعه) و `min/max_rent_toman` هم می‌گیرن. دسته‌های خرید: `apartment-sell`، `house-villa-sell`، `residential-sell`، `commercial-sell`، `office-sell`، `shop-sell`، `plot-old` — هر کدوم یه زیرمجموعه تأییدشده رو قبول می‌کنن (slugهای `-sale` به `-sell` تبدیل می‌شن).
 
-**نوع معامله:** `exchange` (`only_exchanges` · `exclude_exchanges`)، `seller_type` (`personal` · `shop` · `real-estate-business`).
+**نوع معامله:** `exchange` (`only_exchanges` · `exclude_exchanges`)، `seller_type` (`personal` · `shop` / `marketplace` · `real-estate-business`). دسته‌های املاک `personal` / `real-estate-business` می‌گیرن، کالاها `personal` / `shop` (`marketplace` همون مقدار upstreamه)، و ماشین **فقط `personal`** — درخواست فروشگاهی اونجا تو `filters_not_applied` گزارش می‌شه، نه بی‌صدا نادیده.
 
 > **عمداً نیست:** فقط فوری، فقط فروشگاه، سال تولید ماشین، فقط ویدیو سمت سرور. پروب شدن — روی API هیچ کاری نمی‌کنن، پس به‌جای الکی بودن حذف شدن.
 
@@ -98,7 +100,7 @@
 node scripts/verify-live.mjs   # فقط Node.js ۱۸ می‌خواد، نصب لازم نداره
 ```
 
-هر ۶ ابزار رو لیست می‌کنه، یه سرچ + جزئیات + چک حریم خصوصی + مسیرهای خطا رو اجرا می‌کنه و قرارداد صداقت دیتا رو چک می‌کنه. همون اسکریپت **هر ساعت تو CI** اجرا میشه ([![Live verify](https://github.com/mmdju/divar-mcp/actions/workflows/verify.yml/badge.svg)](https://github.com/mmdju/divar-mcp/actions/workflows/verify.yml)) — اگه endpoint یا API دیوار عوض بشه بج قرمز میشه. معماری تو [docs/architecture.md](docs/architecture.md)، کلاینت آماده تو [examples/python.py](examples/python.py).
+هر ۶ ابزار رو لیست می‌کنه، یه سرچ + جزئیات + چک حریم خصوصی + مسیرهای خطا رو اجرا می‌کنه و قرارداد صداقت دیتا رو چک می‌کنه، و نسخه‌ای که سرویس زنده گزارش می‌ده رو با آخرین ریلیز همین ریپو مقایسه می‌کنه. هر وقت خواستی اجراش کن — اگه endpoint یا API دیوار عوض بشه خودش می‌گه و با کد خطا خارج می‌شه. معماری تو [docs/architecture.md](docs/architecture.md)، کلاینت آماده تو [examples/python.py](examples/python.py).
 
 ## حریم خصوصی
 
@@ -110,7 +112,7 @@ node scripts/verify-live.mjs   # فقط Node.js ۱۸ می‌خواد، نصب ل
 
 ## وضعیت
 
-**سرویس عمومی رایگان** روی Cloudflare Workers. **مصرف منصفانه** — اگه فشار بیاری rate-limit میشی.
+**سرویس عمومی رایگان** روی Cloudflare Workers. **مصرف منصفانه** — اگه فشار بیاری rate-limit میشی: per IP، ۶۰ درخواست در دقیقه روی `/mcp` (هم تو کد سرور و هم با قاعده‌ی لبه‌ی کلادفلر — جزئیات تو [SECURITY.md](SECURITY.md)). کلاینت‌های MCP مرورگری هم کار می‌کنن.
 
 ## لایسنس
 

@@ -84,7 +84,7 @@ Condensed from [docs/tools.md](docs/tools.md) — the full parameter table lives
 
 **Homes (rent + buy):** `min/max_size_sqm`, `rooms` (Persian count array, e.g. `["سه"]`), `parking`, `elevator`, `warehouse`, `balcony`. Rent leaves (`apartment-rent`) also take `min/max_credit_toman` (deposit) and `min/max_rent_toman`. Buy leaves: `apartment-sell`, `house-villa-sell`, `residential-sell`, `commercial-sell`, `office-sell`, `shop-sell`, `plot-old` — each honors a verified subset (`-sale` slugs fold to `-sell`).
 
-**Deal type:** `exchange` (`only_exchanges` · `exclude_exchanges`), `seller_type` (`personal` · `shop` · `real-estate-business`). Real-estate leaves take `personal` / `real-estate-business`, goods take `personal` / `shop`, and cars take **`personal` only** - a store request there is reported in `filters_not_applied`, never quietly ignored.
+**Deal type:** `exchange` (`only_exchanges` · `exclude_exchanges`), `seller_type` (`personal` · `shop` / `marketplace` · `real-estate-business`; `marketplace` is the raw upstream value `shop` is sent as). Real-estate leaves take `personal` / `real-estate-business`, goods take `personal` / `shop`, and cars take **`personal` only** - a store request there is reported in `filters_not_applied`, never quietly ignored.
 
 > **Deliberately absent:** urgent-only, shop-only search, car production year, server-side video-only. Probe-tested — they do nothing on the API, so they stay out rather than faked.
 
@@ -100,7 +100,7 @@ Don't take my word for it - check the live server yourself:
 node scripts/verify-live.mjs   # needs Node.js 18+, nothing to install
 ```
 
-It lists all 6 tools over Streamable HTTP, runs a search + details read + privacy check + error paths, and asserts the honest-data contract. The same script runs **hourly in CI** ([![Live verify](https://github.com/mmdju/divar-mcp/actions/workflows/verify.yml/badge.svg)](https://github.com/mmdju/divar-mcp/actions/workflows/verify.yml)) - if the endpoint or Divar's API drifts, the badge goes red. See [docs/architecture.md](docs/architecture.md) for how a question becomes an answer, and [examples/python.py](examples/python.py) for a copy-paste client.
+It lists all 6 tools over Streamable HTTP, runs a search + details read + privacy check + error paths, asserts the honest-data contract, and compares the version the live service reports against the newest release in this repo - so a deployment that lags the docs cannot stay quiet. Run it whenever you like - if the endpoint or Divar's API drifts, it says so and exits non-zero. See [docs/architecture.md](docs/architecture.md) for how a question becomes an answer, and [examples/python.py](examples/python.py) for a copy-paste client.
 
 ## Privacy
 
