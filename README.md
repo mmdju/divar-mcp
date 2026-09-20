@@ -20,16 +20,17 @@ Any MCP client, **one URL**. Cline / Cursor / Claude Desktop (`mcp.json` style):
 
 Then just talk: **"pride under 300 million"**, **"two-bedroom to rent in Tehran"**, **"is this 207 a good deal?"**, **"cheapest iPhone 13 in Mashhad"**.
 
-## 6 tools
+## 7 tools
 
 | Tool | What it answers |
 |---|---|
-| `divar_suggest` | Vague wording to **real search terms, category slugs, city ids** |
+| `divar_suggest` | Vague wording to **real search terms, category slugs, city ids** - every one of Divar's **237 categories** and **1177 cities** |
 | `search_ads` | "Show me X", price checks, **filters + sorting + paging** |
-| `ad_details` | Everything about one ad: **price, specs, photos, map - no phone** |
+| `ad_details` | Everything about one ad: **price, specs, photos, map, expiry, chat flag, seller type - no phone** |
 | `get_ads_batch` | Shortlist cards for **up to 10 tokens** - feeds `compare_ads` |
-| `compare_ads` | "Which of these?" - **only the specs that actually differ** |
+| `compare_ads` | "Which of these?" - **only the specs that actually differ**, plus the middle of the set and where each ad sits |
 | `find_best_value` | "Best X under Y Toman" - **ranked picks, cheapest first** |
+| `market_price` | **"Is this price normal?"** - the median of a live sample, with the sample size and what it dropped |
 
 Notes for agent builders:
 
@@ -39,7 +40,9 @@ Notes for agent builders:
 - Sorting is real: **`newest` · `cheapest` · `most_expensive`**. Pass `sort: cheapest` with a budget to see the global cheapest.
 - **Negotiable ads are not hidden lies**: by default `find_best_value` ranks priced ads only; pass `include_negotiable: true` to surface "توافقی" picks - they come last with `price_toman: null` and a "ask the seller" note. `ad_details` also accepts `detail: "compact"` for a cheap decision card when scanning many ads.
 - Homes add **real filters** for both **rent** (`apartment-rent`) and **buy** (`apartment-sell`, `house-villa-sell`, `office-sell`, `shop-sell`, `plot-old`…): size (sqm), rooms, deposit (rahn) + monthly rent for rentals, and parking / elevator / warehouse / balcony. Each buy leaf honors a verified subset. Cars and phones add **`brand_model`** resolved from Divar's own model list.
-- Some Divar UI filters do **nothing on the API** (urgent-only, shop-only, car year) - they were probe-tested and left out on purpose rather than faked. See **[docs/tools.md](docs/tools.md)** for what is real.
+- Some Divar UI filters do **nothing on the API** (urgent-only, shop-only, car year, recent-only) - they were probe-tested and left out on purpose rather than faked. See **[docs/tools.md](docs/tools.md)** for what is real.
+- **A price is only as good as its comparison.** `market_price` says exactly how many ads it compared, drops placeholder listings (anything under 5% of the sample median), excludes negotiable ads from the maths, and refuses to pass a sample of under 8 ads off as a benchmark. It is not Divar's own کارنامه appraisal, and it says so.
+- `ad_details` reports **`expires_at`** (when Divar takes the ad down) and **`chat_enabled`** (whether the seller can be messaged at all) - two facts that decide whether an ad is still worth chasing, straight from the payload the server already fetched.
 - Results are **capped** (default 10, max 30) to protect agent context. Persian queries are normalized (yeh/kaf folding, Persian digits, ZWNJ variants).
 - See **[examples/sample-calls.md](examples/sample-calls.md)** for seven copy-paste conversation flows, and **[docs/tools.md](docs/tools.md)** for the full parameter reference.
 - The server also speaks MCP **prompts** (`compare-ads`, `best-under-budget` slash-command templates) and **resources** (`divar://cities`, `divar://category-filters/{slug}`) - reference data without burning a tool call.

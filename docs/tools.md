@@ -1,6 +1,6 @@
 # Tool reference
 
-Input/output reference for all **6 tools**. Types only - no internals. For conversation flows, see [examples/sample-calls.md](../examples/sample-calls.md).
+Input/output reference for all **7 tools**. Types only - no internals. For conversation flows, see [examples/sample-calls.md](../examples/sample-calls.md).
 
 Every tool is **read-only** and needs **no credentials**. Result lists are **capped** (default 10, max 30). All prices are in **Toman** (`price_toman: null` means negotiable - never 0).
 
@@ -9,7 +9,8 @@ Shared conventions:
 - `limit` - how many items to return (default 10, max 30).
 - `page` - 1-based page number, max 50. Page 2+ walks real pages (pagination continuation is handled server-side), so deeper pages cost extra requests - and one call walks at most 5 **new** pages, skipping the ones it already has in cache. A short walk is reported as `page_requested` / `page_returned` / `page_note`; call again to continue from where it stopped.
 - `city` - English name (`tehran`, `mashhad`), Persian name or numeric id. `cities` takes up to 5 at once.
-- `category` - Divar slug, e.g. `light` (cars), `mobile-phones`, `apartment-rent`, `apartment-sell`. Ask `divar_suggest` when unsure.
+- `category` - Divar slug, e.g. `light` (cars), `mobile-phones`, `apartment-rent`, `apartment-sell`. All **237** Divar categories are addressable; ask `divar_suggest` when unsure. A slug that is not a real category is **refused with the nearest real ones** (`filters_not_applied` + `category_note`) instead of quietly searching everything - Divar itself ignores an unknown slug and returns the unfiltered list, which would look like an answer.
+- Cities work the same way for all **1177** of them: a number that is not a city id is refused like a bad name, and if Divar answers a city with a wider area the response says so (`city_applied: false`).
 
 ## `divar_suggest`
 
@@ -77,7 +78,9 @@ Which extra keys are honored **depends on the category** - each leaf has its own
 
 Each buy leaf honors a **verified subset** of the home keys - e.g. `elevator` is valid on `apartment-sell`/`office-sell` but not on `house-villa-sell`; `rooms` is valid on `apartment-sell`/`office-sell`/`shop-sell` but not on `residential-sell`/`commercial-sell`/`plot-old`. Anything a leaf rejects upstream is dropped rather than sent. `-sale` slugs (`apartment-sale`, `house-villa-sale`, …) fold to their `-sell` leaf automatically.
 
-Deliberately absent (probe-tested, do nothing on the API): urgent-only, shop-only search, car production year, server-side video-only.
+Deliberately absent (probe-tested, do nothing on the API): urgent-only, shop-only search, car production year, server-side video-only, recent-only (`recent_ads` is advertised by Divar's own filter endpoint but returns an identical page - see `scripts/probe-filters.mjs` in the private repo).
+
+Also absent because it is **not reachable without login**: listing a single store's ads. `divar.ir/pro/<ref>` is a logged-in surface - the data endpoint answers `403 RBAC` anonymously, and no search filter accepts a business ref.
 
 Budget questions (`"best X under Y"`) belong to **`find_best_value`**, not here - plain search only walks the pages you ask for.
 
@@ -85,10 +88,20 @@ Budget questions (`"best X under Y"`) belong to **`find_best_value`**, not here 
 
 **Everything about one ad**: price, description, specs, photos, tags, map - **never a phone number**.
 
+The price comes from the ad's own spec rows (`قیمت پایه` for cars, `قیمت` for phones, `اجارهٔ ماهانه` for rentals) - the place Divar actually publishes it - and **`price_source`** names which source was used (`jsonld` or ``list row 'قیمت پایه'``). A deposit (`ودیعه`) is never treated as a price: a full-mortgage rental (`رهن کامل`) returns `price_toman: null` rather than a wrong number.
+
+It also answers **whether the ad is still worth chasing**, from the payload the server already fetched:
+
+- **`expires_at`** - when Divar takes the ad down (`seo.unavailable_after`). `null` when Divar does not say, never invented.
+- **`chat_enabled`** - whether the seller can be messaged at all. An ad nobody can reply to is a different proposition from one that looks identical otherwise.
+- **`seller_type`** / **`business_token`** - `personal`, or the store type (`marketplace`, `premium-panel`, …) with its brand token. `business_token` is `null` for a private seller - not an empty string.
+
+`contact_uuid`, which the payload does carry, is deliberately **never** returned.
+
 | Param | Type | Required | Notes |
 |---|---|---|---|
 | `token` | string | **yes** | The ad token from a card |
-| `detail` | string | no | `compact` = decision facts only (title, price, city, url); `full` = everything (default) |
+| `detail` | string | no | `compact` = decision facts only (title, price, city, `expires_at`, url); `full` = everything (default) |
 
 ## `get_ads_batch`
 
@@ -102,9 +115,33 @@ Shortlist cards for **up to 10 tokens** - feeds `compare_ads`. Repeated tokens a
 
 **2-5 ads side by side**: price spread plus **only the specs that actually differ** (identical rows are dropped). Same split as `get_ads_batch`: `missing_tokens` for ads that are gone, `invalid_tokens` for tokens that are not Divar ad tokens at all, `partial_failures` for ads blocked by a throttle - a typo is never blamed on Divar. If fewer than two ads resolve, the error names which token was which.
 
+Beyond the specs, each ad carries `expires_at`, `chat_enabled`, `seller_type` and **`vs_set_median_percent`**, and the response carries **`set_median_toman`** (the middle of *these* ads), `price_spread_percent` (how far the priciest sits above the cheapest) and `cheapest_token` / `priciest_token`. The median of two to five ads is the middle of that shortlist, **not a market price** - `set_median_note` says so, and `market_price` is the tool that answers the market question.
+
 | Param | Type | Required | Notes |
 |---|---|---|---|
 | `tokens` | string[] | **yes** | 2 to 5 ad tokens |
+
+## `market_price`
+
+**"Is this price normal?"** Takes one ad (`token`) or a market (`category`), fetches live comparables and answers with arithmetic you can redo by hand: the **median**, the quartiles, the ad's **percentile** (how many comparables were cheaper) and a plain verdict - `below_median` / `around_median` / `above_median` (the band is ±10% of the median).
+
+What it does with the sample, and why:
+
+- **Comparables** are the same category, the same city (or cities), optionally the same `brand_model`, matched by an explicit `query` or - when pricing a token - by **the ad's own title** first. If the title matches fewer than 8 priced ads, the sample widens to the whole category and says so (`comparison_term_widened` + `comparison_term_note`).
+- **Placeholder prices are dropped** (anything under 5% of the sample median - a car listed at 1 Toman is a broken listing, not a bargain)  and counted in `placeholder_prices_excluded`. Ads with no number at all are kept out of the maths and counted honestly: `negotiable_ads_excluded` is توافقی ads, and `unpriced_ads_excluded` is everything unpriced for another reason ("رهن کامل", "call us").
+- **Fewer than 8 comparables is not a benchmark**: `enough_comparables: false` plus `thin_sample_note`, and the numbers are still returned so you can see how thin.
+- It reports **`priced_ads`** (the sample size), the four quartile numbers (`min_toman`, `p25_toman`, `median_toman`, `p75_toman`, `max_toman`) and up to 3 cheapest plus 3 nearest-the-median ads with their URLs.
+- **`not_an_appraisal`** states in every response that this is the median of the ads that call fetched - not Divar's کارنامه appraisal - and that model year, mileage, size and condition still differ between ads, so the URLs are worth opening. For rent categories `metric_note` says the listed price is the **deposit** (ودیعه), not the monthly rent.
+
+| Param | Type | Required | Notes |
+|---|---|---|---|
+| `token` | string | no | The ad to price. Its own category, city and title seed the comparison |
+| `category` | string | no | Required when there is no `token` |
+| `city` | string | no | Defaults to the ad's own city, else `tehran` |
+| `cities` | string[] | no | Up to 5 cities to sample from |
+| `query` | string | no | Explicit comparison term, e.g. `pride 131`. Overrides the ad's own title |
+| `brand_model` | string | no | Cars/phones: exact model to compare against. On any other category it is reported in `brand_model_not_applied` rather than guessed |
+| `max_sample` | number | no | Priced comparables to collect (default 48, max 96) - more sample means more upstream pages |
 
 ## `find_best_value`
 
