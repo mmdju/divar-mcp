@@ -4,6 +4,17 @@ Input/output reference for all **7 tools**. Types only - no internals. For conve
 
 Every tool is **read-only** and needs **no credentials**. Result lists are **capped** (default 10, max 30). All prices are in **Toman** (`price_toman: null` means negotiable - never 0).
 
+Which tool for what - the short version:
+
+| The user says | Call |
+|---|---|
+| something vague, or a town/category you are not sure about | `divar_suggest` |
+| "show me X", "X in Y under Z", "what is there?" | `search_ads` |
+| "is this the same as that one?" (a specific ad) | `ad_details` |
+| a list of tokens, or "compare these" | `get_ads_batch` then `compare_ads` |
+| "best X under Y", "cheapest X" | `find_best_value` |
+| "is this a fair price?", "is this expensive?" | `market_price` |
+
 Shared conventions:
 
 - `limit` - how many items to return (default 10, max 30).
