@@ -76,7 +76,7 @@ Agent calls `compare_ads`. You get price spread plus only the specs that actuall
 
 Condensed from [docs/tools.md](docs/tools.md) — the full parameter table lives there.
 
-**Basics:** `query`, `category` (`light`, `mobile-phones`, `apartment-rent`…), `city` or `cities` (up to 5), `districts`, `min/max_price_toman`, `sort` (`newest` · `cheapest` · `most_expensive`), `page` (1-based, max 50, walks real pages), `limit` (default 10, max 30), `only_photo`, `only_video` (page-level — the API has no server-side video filter).
+**Basics:** `query`, `category` (`light`, `mobile-phones`, `apartment-rent`…), `city` or `cities` (up to 5), `districts`, `min/max_price_toman`, `sort` (`newest` · `cheapest` · `most_expensive`), `page` (1-based, max 50, walks real pages - up to 5 new ones per call, and it tells you when it stopped short), `limit` (default 10, max 30), `only_photo`, `only_video` (page-level — the API has no server-side video filter).
 
 **Cars:** `brand_model` (exact model, resolved from Divar's own list — e.g. Peugeot 206), `min/max_mileage_km`.
 
@@ -84,7 +84,7 @@ Condensed from [docs/tools.md](docs/tools.md) — the full parameter table lives
 
 **Homes (rent + buy):** `min/max_size_sqm`, `rooms` (Persian count array, e.g. `["سه"]`), `parking`, `elevator`, `warehouse`, `balcony`. Rent leaves (`apartment-rent`) also take `min/max_credit_toman` (deposit) and `min/max_rent_toman`. Buy leaves: `apartment-sell`, `house-villa-sell`, `residential-sell`, `commercial-sell`, `office-sell`, `shop-sell`, `plot-old` — each honors a verified subset (`-sale` slugs fold to `-sell`).
 
-**Deal type:** `exchange` (`only_exchanges` · `exclude_exchanges`), `seller_type` (`personal` · `shop` · `real-estate-business`).
+**Deal type:** `exchange` (`only_exchanges` · `exclude_exchanges`), `seller_type` (`personal` · `shop` · `real-estate-business`). Real-estate leaves take `personal` / `real-estate-business`, goods take `personal` / `shop`, and cars take **`personal` only** - a store request there is reported in `filters_not_applied`, never quietly ignored.
 
 > **Deliberately absent:** urgent-only, shop-only search, car production year, server-side video-only. Probe-tested — they do nothing on the API, so they stay out rather than faked.
 
@@ -112,7 +112,7 @@ Divar's public web API (**undocumented, may change without notice**). This proje
 
 ## Status
 
-**Free public service** on Cloudflare Workers. **Fair use applies** - if you hammer it, you will be rate-limited (edge rule, per IP: 60 req/min on `/mcp`, 10-minute block - details in [SECURITY.md](SECURITY.md)). Browser-based MCP clients work too: the endpoint answers CORS preflights.
+**Free public service** on Cloudflare Workers. **Fair use applies** - if you hammer it, you will be rate-limited (per IP, 60 req/min on `/mcp`: enforced in the server code *and* by a Cloudflare edge rule, details in [SECURITY.md](SECURITY.md)). Browser-based MCP clients work too: the endpoint answers CORS preflights.
 
 ## License
 

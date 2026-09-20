@@ -7,7 +7,7 @@ Every tool is **read-only** and needs **no credentials**. Result lists are **cap
 Shared conventions:
 
 - `limit` - how many items to return (default 10, max 30).
-- `page` - 1-based page number, max 50. Page 2+ walks real pages (pagination continuation is handled server-side), so deeper pages cost extra requests.
+- `page` - 1-based page number, max 50. Page 2+ walks real pages (pagination continuation is handled server-side), so deeper pages cost extra requests - and one call walks at most 5 **new** pages, skipping the ones it already has in cache. A short walk is reported as `page_requested` / `page_returned` / `page_note`; call again to continue from where it stopped.
 - `city` - English name (`tehran`, `mashhad`), Persian name or numeric id. `cities` takes up to 5 at once.
 - `category` - Divar slug, e.g. `light` (cars), `mobile-phones`, `apartment-rent`, `apartment-sell`. Ask `divar_suggest` when unsure.
 
@@ -40,7 +40,7 @@ Which extra keys are honored **depends on the category** - each leaf has its own
 | `min_price_toman` / `max_price_toman` | number | Price window in Toman |
 | `sort` | string | `newest` · `cheapest` · `most_expensive` |
 | `exchange` | string | `only_exchanges` = swap-only · `exclude_exchanges` = hide swaps |
-| `seller_type` | string | `personal` · `shop` (goods) · `real-estate-business` (property). Routed to the leaf's real seller filter |
+| `seller_type` | string | `personal` · `shop` (goods; sent as `marketplace`) · `real-estate-business` (property). Cars accept **`personal` only** - a `shop` request there comes back in `filters_not_applied` with `seller_type_note` instead of a page that quietly ignored it |
 | `only_photo` | boolean | Only ads with at least one photo |
 | `only_video` | boolean | Filters the **fetched page** - Divar's API has no server-side video filter |
 | `page` | number | 1-based (default 1, max 50) |
@@ -92,7 +92,7 @@ Budget questions (`"best X under Y"`) belong to **`find_best_value`**, not here 
 
 ## `get_ads_batch`
 
-Shortlist cards for **up to 10 tokens** - feeds `compare_ads`. Dead tokens are reported in `missing_tokens`, not failed.
+Shortlist cards for **up to 10 tokens** - feeds `compare_ads`. Repeated tokens are fetched once. A dead token (sold/removed) lands in `missing_tokens`; a token that could not be fetched because Divar was throttling lands in `partial_failures` with the real reason - a throttle is never reported as a sold ad.
 
 | Param | Type | Required | Notes |
 |---|---|---|---|
@@ -100,7 +100,7 @@ Shortlist cards for **up to 10 tokens** - feeds `compare_ads`. Dead tokens are r
 
 ## `compare_ads`
 
-**2-5 ads side by side**: price spread plus **only the specs that actually differ** (identical rows are dropped).
+**2-5 ads side by side**: price spread plus **only the specs that actually differ** (identical rows are dropped). Same split as `get_ads_batch`: `missing_tokens` for ads that are gone, `partial_failures` for ads blocked by a throttle. If fewer than two ads resolve, the error names which token was which.
 
 | Param | Type | Required | Notes |
 |---|---|---|---|
@@ -115,6 +115,7 @@ Shortlist cards for **up to 10 tokens** - feeds `compare_ads`. Dead tokens are r
 | `query` | string | **yes** | E.g. `پراید`, `two-bedroom apartment` |
 | `budget_toman` | number | **yes** | Maximum price in Toman (not Rial) |
 | `city` | string | no | Default `tehran` |
+| `cities` | string[] | no | Up to 5 cities at once, names or ids |
 | `category` | string | no | Slug to narrow the hunt |
 | `limit` | number | no | How many picks (default 3, max 10) |
 | `include_negotiable` | boolean | no | Also surface "توافقی" ads: they rank **last** with `price_toman: null` and a why line that says ask the seller (default false) |
