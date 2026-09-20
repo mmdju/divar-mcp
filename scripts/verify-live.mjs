@@ -41,6 +41,20 @@ function check(name, ok, detail = "") {
   console.log(`${ok ? "PASS" : "FAIL"}  ${name}${detail ? " - " + detail : ""}`);
 }
 
+// A tool result is a JSON card - except when the deployment is older than the
+// docs and answers a plain-text "Unknown tool ..." for a tool that shipped
+// later. That is exactly the drift this script exists to report, so it must
+// fail its own check instead of throwing and cutting the run short: every
+// remaining check is still worth reporting in the same pass.
+const textOf = (result) => String(result?.content?.[0]?.text ?? "");
+const jsonOf = (result) => {
+  try {
+    return JSON.parse(textOf(result) || "{}");
+  } catch {
+    return null;
+  }
+};
+
 async function main() {
   // 0. Handshake.
   const init = await rpc("initialize", {
@@ -88,7 +102,7 @@ async function main() {
     name: "search_ads",
     arguments: { query: "پراید", city: "tehran", limit: 3 },
   });
-  const sdata = JSON.parse(search.result?.content?.[0]?.text ?? "{}");
+  const sdata = jsonOf(search.result) ?? {};
   const cards = sdata.items ?? [];
   check("search returns items", cards.length > 0, `${cards.length} items`);
   const first = cards[0] ?? {};
@@ -99,7 +113,7 @@ async function main() {
   // 3. Details on a real token from search - still no phone.
   if (first.token) {
     const details = await rpc("tools/call", { name: "ad_details", arguments: { token: first.token } });
-    const ddata = JSON.parse(details.result?.content?.[0]?.text ?? "{}");
+    const ddata = jsonOf(details.result) ?? {};
     check("details returns url", typeof ddata.url === "string" && ddata.url.includes("divar.ir/v/"));
     check("details has no phone field", !/"(phone|mobile|contact_number)"/.test(JSON.stringify(ddata)));
   }
@@ -110,13 +124,17 @@ async function main() {
       name: "market_price",
       arguments: { token: first.token, max_sample: 24 },
     });
-    const pdata = JSON.parse(priced.result?.content?.[0]?.text ?? "{}");
-    check("market_price returns a sample", typeof pdata.sample?.priced_ads === "number", `priced=${pdata.sample?.priced_ads}`);
+    const pdata = jsonOf(priced.result);
+    check(
+      "market_price returns a sample",
+      typeof pdata?.sample?.priced_ads === "number",
+      pdata ? `priced=${pdata.sample.priced_ads}` : `no JSON card - the live service answered ${JSON.stringify(textOf(priced.result).slice(0, 80))}`
+    );
     check(
       "market_price refuses to be Divar's appraisal",
-      typeof pdata.not_an_appraisal === "string" && pdata.not_an_appraisal.includes("not Divar's")
+      typeof pdata?.not_an_appraisal === "string" && pdata.not_an_appraisal.includes("not Divar's")
     );
-    check("market_price states its comparison term", "comparison_term" in pdata);
+    check("market_price states its comparison term", !!pdata && "comparison_term" in pdata);
   }
 
   // 4. Dead token: actionable error, not a crash.

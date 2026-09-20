@@ -2,7 +2,7 @@
 
 Divar MCP is a read-only public service. There is nothing to log in to and no user data is stored.
 
-- All 6 tools are read-only. No tool can change, delete or publish anything.
+- All 7 tools are read-only. No tool can change, delete or publish anything.
 - No API keys are needed to use the hosted endpoint.
 - Nothing is persisted server-side. The only state is a short-lived response cache (per-isolate, plus Cloudflare's edge cache) that other isolates cannot read.
 - Phone numbers need the seller's own login - this server never logs in and never returns them.

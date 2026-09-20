@@ -1,6 +1,8 @@
 # Divar MCP - Classifieds intelligence for AI agents
 
-A public MCP server that gives AI agents **real Divar knowledge**: search **Iran's largest classifieds**, **prices in Toman**, categories, cities, car models, phone specs, rental filters, ad details and comparisons. **Read-only, no key needed. No login, no phone numbers - ever.**
+![Divar MCP banner](assets/divar-mcp.png)
+
+A public MCP server that gives AI agents **real Divar knowledge**: search **Iran's largest classifieds**, **prices in Toman**, categories, cities and neighbourhoods, car mileage and phone specs, rental deposit + rent, ad details, side-by-side comparisons and a live price verdict. **Read-only, no key needed. No login, no phone numbers - ever.**
 
 **Live endpoint:** `https://divar-mcp.mmdju.workers.dev/mcp` (Streamable HTTP, stateless)
 
@@ -20,82 +22,76 @@ Any MCP client, **one URL**. Cline / Cursor / Claude Desktop (`mcp.json` style):
 
 Then just talk: **"pride under 300 million"**, **"two-bedroom to rent in Tehran"**, **"is this 207 a good deal?"**, **"cheapest iPhone 13 in Mashhad"**.
 
+Agents running in a browser work too - the endpoint answers CORS preflights (`OPTIONS /mcp`).
+
 ## 7 tools
 
 | Tool | What it answers |
 |---|---|
-| `divar_suggest` | Vague wording to **real search terms, category slugs, city ids** - every one of Divar's **237 categories** and **1177 cities** |
-| `search_ads` | "Show me X", price checks, **filters + sorting + paging** |
-| `ad_details` | Everything about one ad: **price, specs (mileage, year, size, rooms), amenities, condition scores, photos, map, expiry, chat flag, seller type - no phone** |
+| `divar_suggest` | Vague wording to **real search terms, category slugs, city and district ids** - across all **237 categories** and **1177 cities** |
+| `search_ads` | "Show me X", price checks - **filters, sorting, paging**, one call can scan a window of pages |
+| `ad_details` | Everything about one ad: **price, specs, amenities, condition scores, photos, map, expiry, chat flag, seller type - no phone** |
 | `get_ads_batch` | Shortlist cards for **up to 10 tokens** - feeds `compare_ads` |
 | `compare_ads` | "Which of these?" - **only the specs that actually differ**, plus the middle of the set and where each ad sits |
-| `find_best_value` | "Best X under Y Toman" - **ranked picks, cheapest first**, with placeholder prices labelled instead of winning the ranking |
-| `market_price` | **"Is this price normal?"** - the median of a live sample, with the sample size and what it kept out of the maths |
+| `find_best_value` | "Best X under Y Toman" - **ranked picks**, judged against the uncapped market (`market_scale`) |
+| `market_price` | **"Is this price normal?"** - the median of a live sample, with its sample size and what it kept out of the maths |
+
+Every tool is read-only (`readOnlyHint: true`) and needs no credentials. The server also speaks MCP **prompts** (`compare-ads`, `best-under-budget`) and **resources** (`divar://cities`, `divar://categories`, `divar://category-filters/{slug}`) - reference data without spending a tool call.
 
 Notes for agent builders:
 
-- **All prices are in Toman** (1 Toman = 10 Rial). Ads marked negotiable return `price_toman: null` - never 0. Prices move and ads sell fast - always link the ad URL so the user can confirm before acting.
-- **Not every number in a price field is a price.** Divar has no "price on request" field, so sellers who will not publish one type a fake number - sort a car or phone search by cheapest and the top of the list is a page of ads at `۱,۰۰۰ تومان` from shops inviting نقد و اقساط / تماس بگیرید. Those ads are real listings and are never hidden, but every one of them carries **`price_is_placeholder`**, a `price_placeholder_kind` (`typed_thousand` · `repeated_digits` · `sentinel_number` · `far_below_market`) and a plain-language `price_note`. A list summarises them in `placeholder_price_ads`, `find_best_value` ranks them after honest asks and never lets one set `cheapest_toman`, and `market_price` shows the ones it kept out of the median in `sample_ads_placeholder_prices`.
-- Start vague queries with **`divar_suggest`** to get real search terms, a `category` slug and a city id.
-- Anything with a **budget** or the word **"best"** goes to **`find_best_value`** - plain search only walks the pages you ask for.
-- Sorting is real: **`newest` · `cheapest` · `most_expensive`**. Pass `sort: cheapest` with a budget to see the global cheapest.
-- **Negotiable ads are not hidden lies**: by default `find_best_value` ranks priced ads only; pass `include_negotiable: true` to surface "توافقی" picks - they come last with `price_toman: null` and a "ask the seller" note. `ad_details` also accepts `detail: "compact"` for a cheap decision card when scanning many ads.
-- Homes add **real filters** for both **rent** (`apartment-rent`) and **buy** (`apartment-sell`, `house-villa-sell`, `office-sell`, `shop-sell`, `plot-old`…): size (sqm), rooms, deposit (rahn) + monthly rent for rentals, and parking / elevator / warehouse / balcony. Each buy leaf honors a verified subset. Cars and phones add **`brand_model`** resolved from Divar's own model list.
-- Some Divar UI filters do **nothing on the API** (urgent-only, shop-only, car year, recent-only) - they were probe-tested and left out on purpose rather than faked. See **[docs/tools.md](docs/tools.md)** for what is real.
-- **A price is only as good as its comparison.** `market_price` says exactly how many ads it compared, keeps placeholder listings out of the median (and lists them by token so you can check), excludes negotiable ads from the maths, and refuses to pass a sample of under 8 ads off as a benchmark. It is not Divar's own کارنامه appraisal, and it says so.
-- `ad_details` reports **`expires_at`** (when Divar takes the ad down) and **`chat_enabled`** (whether the seller can be messaged at all) - two facts that decide whether an ad is still worth chasing, straight from the payload the server already fetched.
-- Results are **capped** (default 10, max 30) to protect agent context. Persian queries are normalized (yeh/kaf folding, Persian digits, ZWNJ variants).
-- `search_ads` takes **`pages: 1..5`** to scan and merge a window of the list in one call (deduplicated, same fetch budget as the `page` walk) - that is the "show me more of this search" mode, instead of issuing `page+1` calls by hand. The answer reports `pages_requested` / `pages_returned` and how many distinct ads were in `candidates`.
+- **All prices are in Toman** (1 Toman = 10 Rial). Negotiable ads return `price_toman: null` - never 0. Prices move and ads sell in hours - always link the ad URL so the user can confirm before acting.
+- **Not every number in a price field is a price.** Divar has no "price on request" field, so a seller who will not publish a price types a fake one: sort a car or phone search by cheapest and the top of the list is a page of ads at `۱,۰۰۰ تومان` from shops inviting نقد و اقساط / تماس بگیرید. Those ads are real listings and are never hidden, but each one carries **`price_is_placeholder`**, a `price_placeholder_kind` (`typed_thousand` · `repeated_digits` · `sentinel_number` · `far_below_market`) and a plain-language `price_note`. A list summarises them in `placeholder_price_ads`, `find_best_value` ranks them after honest asks and never lets one set `cheapest_toman`, and `market_price` lists the ones it kept out of the median in `sample_ads_placeholder_prices`.
+- Start vague queries with **`divar_suggest`** to get real search terms, a `category` slug and a city or district id. Names alone do not filter a district - it takes an id.
+- Anything with a **budget** or the word **"best"** goes to **`find_best_value`**; plain search only walks the pages you ask for.
+- **A price is only as good as its comparison.** `market_price` says exactly how many ads it compared, keeps placeholder prices and توافقی ads out of the maths, and refuses to pass a sample of under 8 ads off as a benchmark. It is **not** Divar's own کارنامه appraisal, and it says so in every answer.
+- **Negotiable ads are not hidden lies**: by default `find_best_value` ranks priced ads only; `include_negotiable: true` adds the توافقی picks - last, with `price_toman: null` and an "ask the seller" line.
+- Results are **capped** (default 10, max 30) to protect agent context. Persian queries are normalized (yeh/kaf folding, Persian digits, ZWNJ variants) with one automatic retry when a spelling variant comes back empty.
 - See **[examples/sample-calls.md](examples/sample-calls.md)** for eight copy-paste conversation flows, and **[docs/tools.md](docs/tools.md)** for the full parameter reference.
-- The server also speaks MCP **prompts** (`compare-ads`, `best-under-budget` slash-command templates) and **resources** (`divar://cities`, `divar://categories`, `divar://category-filters/{slug}`) - reference data without burning a tool call.
 
-## What it feels like
+## What it supports
 
-Three real flows (full copy-paste versions in [examples/sample-calls.md](examples/sample-calls.md)):
+Divar's own filters, mapped to real API keys - not a guess at what might work.
 
-**1. Best under budget.** You type (in Persian):
+**Everything:** `query` (Persian or English), `category` (any of the 237 slugs), `city` or `cities` (up to 5 at once), `districts`, `min/max_price_toman`, `sort` (`newest` · `cheapest` · `most_expensive`), `seller_type`, `exchange` (only / exclude swaps), `only_photo`, `only_video`, `limit`, `page` (1-based, max 50) and `pages` (scan and merge up to 5 pages in one call, deduplicated).
 
-```
-پراید زیر ۳۰۰ میلیون چیه؟
-```
-
-Agent calls `find_best_value` (`query` + `budget_toman`). You get 2-3 ranked picks with price, district, photo count, ad URL and a one-line why each. Plain search only walks the pages you ask for — best-value walks up to 3 pages until the budget is exhausted, and adds one page without the price cap as a scale (`market_scale`) so it can say *"nothing under your budget is really priced"* instead of recommending broken listings.
-
-**2. Rental with real filters.** You type (in Persian):
-
-```
-خونه دوخوابه اجاره تو تهران می‌خوام.
-```
-
-Agent calls `search_ads` (`category: apartment-rent`, `rooms`, `min_size_sqm`). You get deposit (rahn), monthly rent, size, rooms, district and URL.
-
-**3. Which one?** You type (in Persian):
-
-```
-بین این دو تا ۲۰۷ کدوم؟ `abc123` یا `def456`؟
-```
-
-Agent calls `compare_ads`. You get price spread plus only the specs that actually differ — identical rows are dropped.
-
-## Filters at a glance
-
-Condensed from [docs/tools.md](docs/tools.md) — the full parameter table lives there.
-
-**Basics:** `query`, `category` (`light`, `mobile-phones`, `apartment-rent`…), `city` or `cities` (up to 5), `districts`, `min/max_price_toman`, `sort` (`newest` · `cheapest` · `most_expensive`), `page` (1-based, max 50, walks real pages - up to 5 new ones per call, and it tells you when it stopped short), `pages` (scan and merge up to 5 pages in one call, deduplicated), `limit` (default 10, max 30), `only_photo`, `only_video` (page-level — the API has no server-side video filter).
-
-**Cars:** `brand_model` (exact model, resolved from Divar's own list — e.g. Peugeot 206), `min/max_mileage_km`.
+**Cars:** `brand_model` (resolved from Divar's own model list, e.g. `audi q4`), `min/max_mileage_km`.
 
 **Phones:** `brand_model`, `condition` (`new` · `like-new` · `used` · `repair-needed`), `min/max_storage_gb`, `min/max_ram_gb`, `color`, `sim_slots` (`1` · `2` · `3+`), `installment`.
 
-**Homes (rent + buy):** `min/max_size_sqm`, `rooms` (Persian count array, e.g. `["سه"]`), `parking`, `elevator`, `warehouse`, `balcony`. Rent leaves (`apartment-rent`) also take `min/max_credit_toman` (deposit) and `min/max_rent_toman`. Buy leaves: `apartment-sell`, `house-villa-sell`, `residential-sell`, `commercial-sell`, `office-sell`, `shop-sell`, `plot-old` — each honors a verified subset (`-sale` slugs fold to `-sell`).
+**Homes, for rent and for sale:** `min/max_size_sqm`, `rooms` (Persian count words, e.g. `["سه"]`), `parking`, `elevator`, `warehouse`, `balcony`; rentals (`apartment-rent`) also take `min/max_credit_toman` (ودیعه) and `min/max_rent_toman`. Buy leaves (`apartment-sell`, `house-villa-sell`, `residential-sell`, `commercial-sell`, `office-sell`, `shop-sell`, `plot-old`…) each honour a verified subset - a filter that a leaf does not support is reported in `filters_not_applied` instead of being sent anyway.
 
-**Deal type:** `exchange` (`only_exchanges` · `exclude_exchanges`), `seller_type` (`personal` · `shop` / `marketplace` · `real-estate-business`; `marketplace` is the raw upstream value `shop` is sent as). Real-estate leaves take `personal` / `real-estate-business`, goods take `personal` / `shop`, and cars take **`personal` only** - a store request there is reported in `filters_not_applied`, never quietly ignored.
+**Details that decide a purchase:** each ad carries the specs from Divar's own rows - mileage and year and colour on a car, size and year built and rooms on a home - plus the amenities (with the "ندارد" rows split into `amenities_absent`), Divar's condition assessment (`condition_scores`), `expires_at`, `chat_enabled`, `seller_type` and a `price_source` saying where the number came from.
 
-> **Deliberately absent:** urgent-only, shop-only search, car production year, server-side video-only. Probe-tested — they do nothing on the API, so they stay out rather than faked.
+**Not supported, on purpose:** posting, editing, chat, marking ads, saved searches and phone numbers - all of it needs the seller's own login, and this server never logs in. Also absent: urgent-only search, shop-only search, car production year, server-side video-only, a single store's ad list (it answers `403` without a login) and per-district ad counts on the map. Each of those was probe-tested against the real API and left out rather than faked.
 
 ## How it works
 
-`AI agent → POST /mcp (no key) → stateless worker → Divar public web API → small cards back (Toman, district, URL).` No sessions, no accounts, no database — only a short-lived response cache. Details calls are paced (2s + backoff). Full diagram in [docs/architecture.md](docs/architecture.md).
+How a question becomes an answer. No user data is stored anywhere in this path.
+
+```mermaid
+flowchart LR
+    subgraph you [Your machine]
+        agent[AI agent<br/>Cline / Cursor / Claude]
+    end
+    subgraph cf [Cloudflare Workers]
+        worker[divar-mcp<br/>stateless, no database]
+    end
+    dv[(Divar public web listings<br/>api.divar.ir)]
+
+    agent -->|POST /mcp<br/>Streamable HTTP, no key| worker
+    worker -->|HTTPS + polite pacing<br/>reads only| dv
+    dv -->|large JSON payloads| worker
+    worker -->|small cards<br/>toman, district, URL| agent
+```
+
+What this means:
+
+- **Stateless.** Every request stands alone - no sessions, no accounts, nothing to log in to.
+- **Read-only.** All 7 tools carry `readOnlyHint`. Nothing here can post, change or delete anything.
+- **No user data.** Nothing about you is stored. What the server does keep: a short-lived response cache (10 minutes for searches and ads, 24 hours for the city/category lists) so asking the same thing twice costs one upstream call.
+- **Rate-limit aware.** Search requests go out 800 ms apart, ad details 2 s apart with backoff, and Divar's model lists are cached for a day - a burst on your side never leaves this server as a burst.
+- **Undocumented upstream.** Divar's public API can change without notice, so the projection is written defensively and the [verify script](scripts/verify-live.mjs) exists to catch drift.
 
 ## Trust, verified
 
@@ -105,19 +101,19 @@ Don't take my word for it - check the live server yourself:
 node scripts/verify-live.mjs   # needs Node.js 18+, nothing to install
 ```
 
-It lists all 7 tools over Streamable HTTP, runs a search + details read + a `market_price` pricing + privacy check + error paths, asserts the honest-data contract, and compares the version the live service reports against the newest release in this repo - so a deployment that lags the docs cannot stay quiet. Run it whenever you like - if the endpoint or Divar's API drifts, it says so and exits non-zero. See [docs/architecture.md](docs/architecture.md) for how a question becomes an answer, and [examples/python.py](examples/python.py) for a copy-paste client.
+It lists all 7 tools over Streamable HTTP, runs a search + details read + a `market_price` pricing + a privacy sweep + error paths, asserts the honest-data contract (Toman prices, negotiable = `null`, actionable errors), and compares the version the live service reports against the newest release in this repo - so a deployment that lags these docs cannot stay quiet. The same script runs **hourly in CI** ([![Live verify](https://github.com/mmdju/divar-mcp/actions/workflows/verify.yml/badge.svg)](https://github.com/mmdju/divar-mcp/actions/workflows/verify.yml) - if the endpoint or Divar's API drifts, the badge goes red). See [docs/architecture.md](docs/architecture.md) for how a question becomes an answer, and [examples/python.py](examples/python.py) for a copy-paste client.
 
 ## Privacy
 
-Phone numbers need the seller's own login - **this server never logs in and never returns them**. Verified live: no `phone`, `mobile` or `contact_number` field anywhere in search or details.
+Phone numbers need the seller's own login, and **this server never logs in and never returns them**. Verified live: no `phone`, `mobile` or `contact_number` field appears anywhere in search results or ad details. Ads are linked, not contacted - the user talks to the seller themselves.
 
 ## Data source
 
-Divar's public web API (**undocumented, may change without notice**). This project is **not affiliated with or endorsed by Divar**.
+Divar's public web listings (**undocumented, may change without notice**). This project is **not affiliated with or endorsed by Divar**.
 
 ## Status
 
-**Free public service** on Cloudflare Workers. **Fair use applies** - if you hammer it, you will be rate-limited (per IP, 60 req/min on `/mcp`: enforced in the server code *and* by a Cloudflare edge rule, details in [SECURITY.md](SECURITY.md)). Browser-based MCP clients work too: the endpoint answers CORS preflights.
+**Free public service** on Cloudflare Workers. **Fair use: 60 requests per minute per IP** on `/mcp` (HTTP 429 with `retry-after`) - enforced in the server *and* by a Cloudflare edge rule, details in [SECURITY.md](SECURITY.md). A normal agent session never comes close, because Divar's own pacing caps a client at about one tool call per second anyway.
 
 ## License
 
