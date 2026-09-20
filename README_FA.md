@@ -42,8 +42,9 @@
 - بعضی فیلترهای رابط دیوار **روی API هیچ کاری نمی‌کنن** (فقط فوری، فقط فروشگاه، سال تولید ماشین) — پروب شدن و عمدا گذاشته نشدن تا الکی نباشن. لیست واقعی‌ها تو **[docs/tools.md](docs/tools.md)** هست.
 - نتیجه‌ها **سقف دارن** (پیش‌فرض ۱۰، حداکثر ۳۰) تا کانتکست ایجنت حفظ بشه. فارسی هم مرتب میشه (ی/ک عربی، ارقام فارسی، نیم‌فاصله).
 - **آگهی‌های توافقی پنهان نمی‌شن**: `find_best_value` به‌طور پیش‌فرض فقط آگهی‌های قیمت‌دار رو رتبه‌بندی می‌کنه؛ با `include_negotiable: true` انتخاب‌های «توافقی» هم میان - آخر همه، با `price_toman: null` و یه خط «از فروشنده بپرس». `ad_details` هم `detail: "compact"` می‌گیره برای یه کارت تصمیم سبک وقتی چند تا آگهی رو اسکن می‌کنی.
-- سرور علاوه بر ابزارها MCP **prompts** هم داره (`compare-ads` و `best-under-budget` برای اسلش‌کامند) و **resources** (`divar://cities`، `divar://category-filters/{slug}`) - داده‌های مرجع بدون سوزوندن یه tool call.
-- **هفت تا مکالمه آماده** کپی-پیست تو **[examples/sample-calls.md](examples/sample-calls.md)** هست، و مرجع کامل پارامترها تو **[docs/tools.md](docs/tools.md)**.
+- `search_ads` پارامتر **`pages: 1..5`** هم داره: چند صفحه از لیست رو تو یه call می‌گرده و با هم ادغام می‌کنه (تکراری‌ها حذف می‌شن، با همون سقف واکشی `page`) - یعنی حالت «بیشتر از این سرچ نشونم بده» بدون اینکه خودت `page+1` صدا بزنی. جواب می‌گه `pages_requested` / `pages_returned` چند بود و `candidates` چند آگهی یکتا داشت.
+- سرور علاوه بر ابزارها MCP **prompts** هم داره (`compare-ads` و `best-under-budget` برای اسلش‌کامند) و **resources** (`divar://cities`، `divar://categories`، `divar://category-filters/{slug}`) - داده‌های مرجع بدون سوزوندن یه tool call.
+- **هشت تا مکالمه آماده** کپی-پیست تو **[examples/sample-calls.md](examples/sample-calls.md)** هست، و مرجع کامل پارامترها تو **[docs/tools.md](docs/tools.md)**.
 
 ## حسش چیه
 
@@ -77,7 +78,7 @@
 
 خلاصه [docs/tools.md](docs/tools.md) — جدول کامل پارامترها همون‌جاست.
 
-**پایه:** `query`، `category` (`light`، `mobile-phones`، `apartment-rent`…)، `city` یا `cities` (تا ۵ شهر)، `districts`، `min/max_price_toman`، `sort` (`newest` · `cheapest` · `most_expensive`)، `page` (از ۱، حداکثر ۵۰، صفحه‌های واقعی — هر call حداکثر ۵ صفحه‌ی تازه واکشی می‌کنه و از کش رایگان می‌گذره، و اگه کوتاه بمونه خودش با `page_note` می‌گه)، `limit` (پیش‌فرض ۱۰، حداکثر ۳۰)، `only_photo`، `only_video` (روی صفحه گرفته‌شده — API فیلتر ویدیو سمت سرور نداره).
+**پایه:** `query`، `category` (`light`، `mobile-phones`، `apartment-rent`…)، `city` یا `cities` (تا ۵ شهر)، `districts`، `min/max_price_toman`، `sort` (`newest` · `cheapest` · `most_expensive`)، `page` (از ۱، حداکثر ۵۰، صفحه‌های واقعی — هر call حداکثر ۵ صفحه‌ی تازه واکشی می‌کنه و از کش رایگان می‌گذره، و اگه کوتاه بمونه خودش با `page_note` می‌گه)، `pages` (تا ۵ صفحه رو تو یه call می‌گرده و ادغام می‌کنه، تکراری‌ها حذف می‌شن)، `limit` (پیش‌فرض ۱۰، حداکثر ۳۰)، `only_photo`، `only_video` (روی صفحه گرفته‌شده — API فیلتر ویدیو سمت سرور نداره).
 
 **ماشین:** `brand_model` (مدل دقیق از لیست خود دیوار)، `min/max_mileage_km`.
 

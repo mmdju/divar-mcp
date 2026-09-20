@@ -18,7 +18,8 @@ Which tool for what - the short version:
 Shared conventions:
 
 - `limit` - how many items to return (default 10, max 30).
-- `page` - 1-based page number, max 50. Page 2+ walks real pages (pagination continuation is handled server-side), so deeper pages cost extra requests - and one call walks at most 5 **new** pages, skipping the ones it already has in cache. A short walk is reported as `page_requested` / `page_returned` / `page_note`; call again to continue from where it stopped.
+- `page` - 1-based page number, max 50. Page 2+ walks real pages (pagination continuation is handled server-side), so deeper pages cost extra requests - and one call walks at most 5 **new** pages, skipping the ones it already has in cache. A short walk is reported as `page_requested` / `page_returned` / `page_note`; call again to continue from where it stopped. `has_next_page` always reflects the last page Divar actually served.
+- `pages` - the "show me more of this search" mode: scan and merge up to 5 pages in one call (deduplicated by token, same per-call fetch budget as `page`). `candidates` says how many distinct ads the answer was chosen from.
 - `city` - English name (`tehran`, `mashhad`), Persian name or numeric id. `cities` takes up to 5 at once.
 - `category` - Divar slug, e.g. `light` (cars), `mobile-phones`, `apartment-rent`, `apartment-sell`. All **237** Divar categories are addressable; ask `divar_suggest` when unsure. A slug that is not a real category is **refused with the nearest real ones** (`filters_not_applied` + `category_note`) instead of quietly searching everything - Divar itself ignores an unknown slug and returns the unfiltered list, which would look like an answer.
 - Cities work the same way for all **1177** of them: a number that is not a city id is refused like a bad name, and if Divar answers a city with a wider area the response says so (`city_applied: false`).
@@ -56,6 +57,7 @@ Which extra keys are honored **depends on the category** - each leaf has its own
 | `only_photo` | boolean | Only ads with at least one photo |
 | `only_video` | boolean | Filters the **fetched page** - Divar's API has no server-side video filter |
 | `page` | number | 1-based (default 1, max 50) |
+| `pages` | number | Scan and merge this many pages of 24 into one answer (default 1, max 5). Use it instead of repeating `page+1` calls; the union is deduplicated by token and the response reports `pages_requested` / `pages_returned` / `candidates`. Mutually exclusive with `page` above 1 |
 | `limit` | number | Default 10, max 30 |
 
 **Cars (`light`, alias `cars`/`vehicles`):**
@@ -99,12 +101,16 @@ Budget questions (`"best X under Y"`) belong to **`find_best_value`**, not here 
 
 **Everything about one ad**: price, description, specs, photos, tags, map - **never a phone number**.
 
-The price comes from the ad's own spec rows (`قیمت پایه` for cars, `قیمت` for phones, `اجارهٔ ماهانه` for rentals) - the place Divar actually publishes it - and **`price_source`** names which source was used (`jsonld` or ``list row 'قیمت پایه'``). A deposit (`ودیعه`) is never treated as a price: a full-mortgage rental (`رهن کامل`) returns `price_toman: null` rather than a wrong number.
+The price comes from the ad's own spec rows (`قیمت پایه` for cars, `قیمت` for phones, `اجارهٔ ماهانه` for rentals) - the place Divar actually publishes it - and **`price_source`** names which source was used (`jsonld` or ``list row 'قیمت پایه'``). A deposit (`ودیعه`) is never treated as a price: a full-mortgage rental (`رهن کامل`) returns `price_toman: null` rather than a wrong number, and a rental that does have both lines reports them separately (`deposit_toman`, `monthly_rent_toman`).
+
+`specs` is the whole spec table, not a sample: mileage, production year and colour on a car; size, year built and rooms on a home; the price row itself. `amenities` holds the amenity rows the ad says it **has** (پارکینگ / انباری / آسانسور) and `amenities_absent` the ones it says it does **not** ("آسانسور ندارد", "بدون انباری") - Divar writes both in the same row, so they are split rather than mixed. `condition_scores` carries Divar's own condition assessment of a vehicle (موتور / وضعیت شاسی‌ها / بدنه / گیربکس). Alongside them: the Latin district slug, the Persian category name, the canonical `brand_model`, and a `thumbnail` taken from the first carousel image.
+
+The details lane returns **no** `badges`, `has_video` or `time_ago`: those exist only on search rows, and reporting them as `[]` / `false` here would look like something that was checked.
 
 It also answers **whether the ad is still worth chasing**, from the payload the server already fetched:
 
 - **`expires_at`** - when Divar takes the ad down (`seo.unavailable_after`). `null` when Divar does not say, never invented.
-- **`chat_enabled`** - whether the seller can be messaged at all. An ad nobody can reply to is a different proposition from one that looks identical otherwise.
+- **`chat_enabled`** - whether the seller can be messaged at all. An ad nobody can reply to is a different proposition from one that looks identical otherwise. (`has_chat` on this lane carries the same value, read from the same field, so the two can never disagree - the payload's row-level flag means nothing here.)
 - **`seller_type`** / **`business_token`** - `personal`, or the store type (`marketplace`, `premium-panel`, …) with its brand token. `business_token` is `null` for a private seller - not an empty string.
 
 `contact_uuid`, which the payload does carry, is deliberately **never** returned.
@@ -142,7 +148,8 @@ What it does with the sample, and why:
 - **Placeholder prices are dropped** (anything under 5% of the sample median - a car listed at 1 Toman is a broken listing, not a bargain)  and counted in `placeholder_prices_excluded`. Ads with no number at all are kept out of the maths and counted honestly: `negotiable_ads_excluded` is توافقی ads, and `unpriced_ads_excluded` is everything unpriced for another reason ("رهن کامل", "call us").
 - **Fewer than 8 comparables is not a benchmark**: `enough_comparables: false` plus `thin_sample_note`, and the numbers are still returned so you can see how thin.
 - It reports **`priced_ads`** (the sample size), the four quartile numbers (`min_toman`, `p25_toman`, `median_toman`, `p75_toman`, `max_toman`) and up to 3 cheapest plus 3 nearest-the-median ads with their URLs.
-- **`not_an_appraisal`** states in every response that this is the median of the ads that call fetched - not Divar's کارنامه appraisal - and that model year, mileage, size and condition still differ between ads, so the URLs are worth opening. For rent categories `metric_note` says the listed price is the **deposit** (ودیعه), not the monthly rent.
+- When you price a **token** and that ad states no number at all - a full-mortgage rental (رهن کامل) lists only a deposit - `comparison` says exactly that (`position: "unknown"`) instead of leaving the answer without a verdict, and the deposit is named as a deposit rather than compared as a price.
+- **`not_an_appraisal`** states in every response that this is the median of the ads that call fetched - not Divar's کارنامه appraisal - and that model year, mileage, size and condition still differ between ads, so the URLs are worth opening. For rent categories `metric_note` says the compared number is the **monthly rent** (اجارهٔ ماهانه) - the figure Divar shows as the price - and that the deposit (ودیعه) is a separate line, so two rentals with equal rent and very different deposits rank as equals here.
 
 | Param | Type | Required | Notes |
 |---|---|---|---|
@@ -156,7 +163,7 @@ What it does with the sample, and why:
 
 ## `find_best_value`
 
-**"Best X under Y Toman"**. Walks up to 3 search pages until the budget is exhausted, keeps what fits, then **ranks cheapest-first** with photo and chat bonuses.
+**"Best X under Y Toman"**. Walks up to 3 search pages until the budget is exhausted, keeps what fits, then **ranks cheapest-first** with photo and chat bonuses. One extra page of the same search without the price cap is fetched as a price scale (see `market_scale` below) - that is the only request beyond the walk.
 
 | Param | Type | Required | Notes |
 |---|---|---|---|
@@ -167,6 +174,14 @@ What it does with the sample, and why:
 | `category` | string | no | Slug to narrow the hunt |
 | `limit` | number | no | How many picks (default 3, max 10) |
 | `include_negotiable` | boolean | no | Also surface "توافقی" ads: they rank **last** with `price_toman: null` and a why line that says ask the seller (default false) |
+
+Placeholder prices are kept out of the ranking: a listing at 1,000 Toman is a broken ad, not a bargain, and a cheapest-first ranking would hand it the top slot. The cut is **relative, never a magic number** - prices under 5% of the median of the same search *without* the price cap are excluded and counted in `placeholder_prices_excluded` with a note.
+
+That uncapped page rides in every answer as **`market_scale`** (`priced_ads`, `min_toman`, `median_toman`, `max_toman`): a pool that already fits your budget cannot judge itself, and a budget hunt that finds nothing is exactly when "what does this actually cost?" is the useful answer. So a 1,000,000-Toman hunt for a car returns `picks: []` with *"Nothing under 1,000,000 Toman that is really priced: 24 ad(s) matched the budget and every one of them is a placeholder price (the same search without a price cap has a median of 528,500,000 Toman, cheapest 255,000,000)"* instead of three broken listings ranked as bargains.
+
+The response also carries `in_budget` (how many ads fit the budget) and `candidates` (how many of those the picks were chosen from), and `picks` is present even when it is empty.
+
+A `category` that is not a real Divar leaf is refused with a usage error naming `divar_suggest` (`cars` and `vehicles` fold to the filter-capable `light` leaf automatically) - it used to come back as an upstream "rephrase your query".
 
 For cars and homes: compare the specs yourself - prices are negotiable and ads sell fast.
 
@@ -183,7 +198,8 @@ Two ready-made flows a client can offer as slash-commands - the server renders t
 
 Static tables the server can serve on demand - `divar://` URIs, JSON:
 
-- **`divar://cities`** - english slug → numeric city id for every searchable city
-- **`divar://cities-fa`** - Persian name → city id
+- **`divar://cities`** - every searchable city, in three shapes: `by_id` (id → Latin slug), `by_slug` (slug → id) and `by_name_fa` (Persian name → id)
+- **`divar://cities-fa`** - the same data, Persian name → city id only
+- **`divar://categories`** - the whole category tree: slug → `{ name, parent, depth }`
 - **`divar://category-filters`** - which filter keys each category accepts (sending unknown keys is a 400)
 - **`divar://category-filters/{slug}`** - the same for one category, e.g. `divar://category-filters/apartment-rent`

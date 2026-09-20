@@ -1,6 +1,6 @@
 # Sample conversations (copy-paste)
 
-Seven flows that show what the server is good at. Each one is **user asks → agent calls → user gets**. Prices below are examples from testing, not live quotes - always open the ad URL before acting.
+Eight flows that show what the server is good at. Each one is **user asks → agent calls → user gets**. Prices below are examples from testing, not live quotes - always open the ad URL before acting.
 
 ---
 
@@ -18,7 +18,7 @@ Agent calls:
 
 User gets: **2-3 ranked picks** with price, district, photo count, ad URL and a one-line *why* for each. If the budget fits nothing, the response says so and suggests raising it.
 
-Why this tool: plain search only walks **the pages you ask for** - `find_best_value` walks up to 3 pages until the budget is exhausted, then ranks cheapest-first.
+Why this tool: plain search only walks **the pages you ask for** - `find_best_value` walks up to 3 pages until the budget is exhausted, then ranks cheapest-first. Broken listings cannot win that ranking: one page of the same search **without** the price cap rides along as `market_scale`, and prices under 5% of that median are excluded and counted in `placeholder_prices_excluded`. If the budget fits nothing that is really priced, the answer says so and names the real market range instead of ranking 1,000-Toman ads as bargains.
 
 ---
 
@@ -118,9 +118,28 @@ User gets: **buy listings** with price, size, rooms, district and ad URL. Buy le
 
 ---
 
+## 8. "Is 600 million fair for this Pride?"
+
+User:
+
+> این پراید ۶۰۰ میلیون می‌ارزه؟ `xyz789`
+
+Agent calls:
+
+```json
+{ "tool": "market_price", "arguments": { "token": "xyz789", "max_sample": 48 } }
+```
+
+User gets: the **median and quartiles of live comparable ads** (the ad's own category, city and title seed the comparison), where this ad sits as a percentile, and a plain verdict (`below_median` / `around_median` / `above_median`). The answer states how many ads it compared, what it dropped (placeholder prices, negotiable ads, ads with no number), and that it is **not** Divar's کارنامه appraisal - plus up to 6 sample ads with URLs so the user can check for themselves.
+
+Why this tool: `compare_ads` answers "which of *these* two?" - `market_price` answers "is this price normal?" against a real sample.
+
+---
+
 ## Tips
 
 - Vague wording first goes to **`divar_suggest`** - it turns slang into real search terms plus a `category` slug and city id.
+- "Show me more of this search" - pass **`pages: 3`** instead of issuing `page+1` calls: the pages are merged and deduplicated into one answer, and the response reports what it actually walked.
 - **Always link the ad URL** in whatever you show the user. Ads sell fast and prices are negotiable.
 - Tool results are **capped** (default 10, max 30) to protect agent context - ask for more only when needed.
 - **No phone numbers, ever.** If the user wants to call, send them the ad URL.

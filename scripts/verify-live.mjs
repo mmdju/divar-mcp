@@ -64,11 +64,20 @@ async function main() {
 
   await rpc("notifications/initialized", {});
 
-  // 1. Tool list: expect the 6 public tools.
+  // 1. Tool list: expect the 7 public tools. This assertion is what catches a
+  // deployment that lags the docs, so it names every released tool.
   const listed = await rpc("tools/list", {});
   const names = (listed.result?.tools ?? []).map((t) => t.name);
-  check("tools/list returns 6 tools", names.length === 6, `${names.length} tools`);
-  for (const must of ["divar_suggest", "search_ads", "ad_details", "get_ads_batch", "compare_ads", "find_best_value"]) {
+  check("tools/list returns 7 tools", names.length === 7, `${names.length} tools`);
+  for (const must of [
+    "divar_suggest",
+    "search_ads",
+    "ad_details",
+    "get_ads_batch",
+    "compare_ads",
+    "find_best_value",
+    "market_price",
+  ]) {
     check(`tool present: ${must}`, names.includes(must));
   }
   const readonly = (listed.result?.tools ?? []).every((t) => t.annotations?.readOnlyHint === true);
@@ -93,6 +102,21 @@ async function main() {
     const ddata = JSON.parse(details.result?.content?.[0]?.text ?? "{}");
     check("details returns url", typeof ddata.url === "string" && ddata.url.includes("divar.ir/v/"));
     check("details has no phone field", !/"(phone|mobile|contact_number)"/.test(JSON.stringify(ddata)));
+  }
+
+  // 3b. market_price: its arithmetic and its refusal to be an appraisal.
+  if (first.token) {
+    const priced = await rpc("tools/call", {
+      name: "market_price",
+      arguments: { token: first.token, max_sample: 24 },
+    });
+    const pdata = JSON.parse(priced.result?.content?.[0]?.text ?? "{}");
+    check("market_price returns a sample", typeof pdata.sample?.priced_ads === "number", `priced=${pdata.sample?.priced_ads}`);
+    check(
+      "market_price refuses to be Divar's appraisal",
+      typeof pdata.not_an_appraisal === "string" && pdata.not_an_appraisal.includes("not Divar's")
+    );
+    check("market_price states its comparison term", "comparison_term" in pdata);
   }
 
   // 4. Dead token: actionable error, not a crash.

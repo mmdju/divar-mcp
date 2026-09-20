@@ -21,7 +21,7 @@ flowchart LR
 What this means:
 
 - **Stateless.** Every request stands alone - no sessions, no accounts, nothing to log in to.
-- **Read-only.** All 6 tools carry `readOnlyHint`. Nothing here can change, delete or post anything.
+- **Read-only.** All 7 tools carry `readOnlyHint`. Nothing here can change, delete or post anything.
 - **No storage.** The only memory is a short-lived response cache (minutes, per isolate). Prices are re-read from Divar every time the cache expires.
 - **Rate-limit aware.** Search is calm; details calls are spaced (2s) with backoff, and Kenar model lookups are cached 24h - bursts never leave this box as bursts.
 - **Privacy by design.** Phone numbers need the seller's own login. This server never logs in, so contact fields simply cannot appear in any response.

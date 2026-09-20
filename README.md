@@ -26,7 +26,7 @@ Then just talk: **"pride under 300 million"**, **"two-bedroom to rent in Tehran"
 |---|---|
 | `divar_suggest` | Vague wording to **real search terms, category slugs, city ids** - every one of Divar's **237 categories** and **1177 cities** |
 | `search_ads` | "Show me X", price checks, **filters + sorting + paging** |
-| `ad_details` | Everything about one ad: **price, specs, photos, map, expiry, chat flag, seller type - no phone** |
+| `ad_details` | Everything about one ad: **price, specs (mileage, year, size, rooms), amenities, condition scores, photos, map, expiry, chat flag, seller type - no phone** |
 | `get_ads_batch` | Shortlist cards for **up to 10 tokens** - feeds `compare_ads` |
 | `compare_ads` | "Which of these?" - **only the specs that actually differ**, plus the middle of the set and where each ad sits |
 | `find_best_value` | "Best X under Y Toman" - **ranked picks, cheapest first** |
@@ -44,8 +44,9 @@ Notes for agent builders:
 - **A price is only as good as its comparison.** `market_price` says exactly how many ads it compared, drops placeholder listings (anything under 5% of the sample median), excludes negotiable ads from the maths, and refuses to pass a sample of under 8 ads off as a benchmark. It is not Divar's own کارنامه appraisal, and it says so.
 - `ad_details` reports **`expires_at`** (when Divar takes the ad down) and **`chat_enabled`** (whether the seller can be messaged at all) - two facts that decide whether an ad is still worth chasing, straight from the payload the server already fetched.
 - Results are **capped** (default 10, max 30) to protect agent context. Persian queries are normalized (yeh/kaf folding, Persian digits, ZWNJ variants).
-- See **[examples/sample-calls.md](examples/sample-calls.md)** for seven copy-paste conversation flows, and **[docs/tools.md](docs/tools.md)** for the full parameter reference.
-- The server also speaks MCP **prompts** (`compare-ads`, `best-under-budget` slash-command templates) and **resources** (`divar://cities`, `divar://category-filters/{slug}`) - reference data without burning a tool call.
+- `search_ads` takes **`pages: 1..5`** to scan and merge a window of the list in one call (deduplicated, same fetch budget as the `page` walk) - that is the "show me more of this search" mode, instead of issuing `page+1` calls by hand. The answer reports `pages_requested` / `pages_returned` and how many distinct ads were in `candidates`.
+- See **[examples/sample-calls.md](examples/sample-calls.md)** for eight copy-paste conversation flows, and **[docs/tools.md](docs/tools.md)** for the full parameter reference.
+- The server also speaks MCP **prompts** (`compare-ads`, `best-under-budget` slash-command templates) and **resources** (`divar://cities`, `divar://categories`, `divar://category-filters/{slug}`) - reference data without burning a tool call.
 
 ## What it feels like
 
@@ -57,7 +58,7 @@ Three real flows (full copy-paste versions in [examples/sample-calls.md](example
 پراید زیر ۳۰۰ میلیون چیه؟
 ```
 
-Agent calls `find_best_value` (`query` + `budget_toman`). You get 2-3 ranked picks with price, district, photo count, ad URL and a one-line why each. Plain search only walks the pages you ask for — best-value walks up to 3 pages until the budget is exhausted.
+Agent calls `find_best_value` (`query` + `budget_toman`). You get 2-3 ranked picks with price, district, photo count, ad URL and a one-line why each. Plain search only walks the pages you ask for — best-value walks up to 3 pages until the budget is exhausted, and adds one page without the price cap as a scale (`market_scale`) so it can say *"nothing under your budget is really priced"* instead of recommending broken listings.
 
 **2. Rental with real filters.** You type (in Persian):
 
@@ -79,7 +80,7 @@ Agent calls `compare_ads`. You get price spread plus only the specs that actuall
 
 Condensed from [docs/tools.md](docs/tools.md) — the full parameter table lives there.
 
-**Basics:** `query`, `category` (`light`, `mobile-phones`, `apartment-rent`…), `city` or `cities` (up to 5), `districts`, `min/max_price_toman`, `sort` (`newest` · `cheapest` · `most_expensive`), `page` (1-based, max 50, walks real pages - up to 5 new ones per call, and it tells you when it stopped short), `limit` (default 10, max 30), `only_photo`, `only_video` (page-level — the API has no server-side video filter).
+**Basics:** `query`, `category` (`light`, `mobile-phones`, `apartment-rent`…), `city` or `cities` (up to 5), `districts`, `min/max_price_toman`, `sort` (`newest` · `cheapest` · `most_expensive`), `page` (1-based, max 50, walks real pages - up to 5 new ones per call, and it tells you when it stopped short), `pages` (scan and merge up to 5 pages in one call, deduplicated), `limit` (default 10, max 30), `only_photo`, `only_video` (page-level — the API has no server-side video filter).
 
 **Cars:** `brand_model` (exact model, resolved from Divar's own list — e.g. Peugeot 206), `min/max_mileage_km`.
 
@@ -103,7 +104,7 @@ Don't take my word for it - check the live server yourself:
 node scripts/verify-live.mjs   # needs Node.js 18+, nothing to install
 ```
 
-It lists all 6 tools over Streamable HTTP, runs a search + details read + privacy check + error paths, asserts the honest-data contract, and compares the version the live service reports against the newest release in this repo - so a deployment that lags the docs cannot stay quiet. Run it whenever you like - if the endpoint or Divar's API drifts, it says so and exits non-zero. See [docs/architecture.md](docs/architecture.md) for how a question becomes an answer, and [examples/python.py](examples/python.py) for a copy-paste client.
+It lists all 7 tools over Streamable HTTP, runs a search + details read + a `market_price` pricing + privacy check + error paths, asserts the honest-data contract, and compares the version the live service reports against the newest release in this repo - so a deployment that lags the docs cannot stay quiet. Run it whenever you like - if the endpoint or Divar's API drifts, it says so and exits non-zero. See [docs/architecture.md](docs/architecture.md) for how a question becomes an answer, and [examples/python.py](examples/python.py) for a copy-paste client.
 
 ## Privacy
 
