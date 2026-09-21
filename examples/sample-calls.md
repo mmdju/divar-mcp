@@ -18,7 +18,7 @@ Agent calls:
 
 User gets: **2-3 ranked picks** with price, district, photo count, ad URL and a one-line *why* for each. If the budget fits nothing, the response says so and suggests raising it.
 
-Why this tool: plain search only walks **the pages you ask for** - `find_best_value` walks up to 3 pages until the budget is exhausted, then ranks cheapest-first. A listing at `۱,۰۰۰ تومان` is a real ad (نقد و اقساط / تماس بگیرید), so it is never hidden - but it cannot win that ranking: it comes back flagged with a `price_note`, ranks after the honestly priced picks, and never sets `cheapest_toman`. One page of the same search **without** the price cap rides along as `market_scale`, which is what makes the answer say *"nothing fitting your budget carries an honest asking price - this query actually costs from X"* instead of calling 1,000-Toman ads bargains.
+Why this tool: plain search only walks **the pages you ask for** - `find_best_value` walks up to 3 pages until the budget is exhausted, then orders the picks by what that budget actually reaches. A listing at `۱,۰۰۰ تومان` is a real ad (نقد و اقساط / تماس بگیرید), so it is never hidden - but it cannot win that ranking: it comes back flagged with a `price_note`, ranks after the honestly priced picks, and never sets `cheapest_toman`. One page of the same search **without** the price cap rides along as `market_scale`, which is what makes the answer say *"nothing fitting your budget carries an honest asking price - this query actually costs from X"* instead of calling 1,000-Toman ads bargains.
 
 ---
 

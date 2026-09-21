@@ -33,7 +33,7 @@ Agents running in a browser work too - the endpoint answers CORS preflights (`OP
 | `ad_details` | Everything about one ad: **price, specs, amenities, condition scores, photos, map, expiry, chat flag, seller type - no phone** |
 | `get_ads_batch` | Shortlist cards for **up to 10 tokens** - feeds `compare_ads` |
 | `compare_ads` | "Which of these?" - **only the specs that actually differ**, plus the middle of the set and where each ad sits |
-| `find_best_value` | "Best X under Y Toman" - **ranked picks**, judged against the uncapped market (`market_scale`) |
+| `find_best_value` | "Best X under Y Toman" - **picks ranked by what the budget reaches**, judged against the uncapped market (`market_scale`) |
 | `market_price` | **"Is this price normal?"** - the median of a live sample, with its sample size and what it kept out of the maths |
 
 Every tool is read-only (`readOnlyHint: true`) and needs no credentials. The server also speaks MCP **prompts** (`compare-ads`, `best-under-budget`) and **resources** (`divar://cities`, `divar://categories`, `divar://category-filters/{slug}`) - reference data without spending a tool call.
