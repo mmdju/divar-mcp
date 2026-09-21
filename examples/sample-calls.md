@@ -34,7 +34,7 @@ Agent calls:
 { "tool": "search_ads", "arguments": { "query": "آپارتمان", "category": "apartment-rent", "rooms": ["دو"], "min_size_sqm": 70, "limit": 10 } }
 ```
 
-User gets: **matching rentals** with deposit (rahn), monthly rent, size, rooms, district and ad URL.
+User gets: **matching rentals** with deposit (rahn), monthly rent, size, rooms, district and ad URL - and any ad whose own title says it is a room in a shared home (`همخونه` / `هماتاقی`) comes back flagged (`shared_housing` + note, counted in `shared_housing_ads`), so a room's price is not read as a flat's rent.
 
 ---
 

@@ -29,6 +29,23 @@ export interface AdCard {
   city: string | null; // null when Divar does not say, never a breadcrumb guess
   time_ago: string | null; // "لحظاتی پیش در صادقیه" (row lane only)
   deposit_toman: number | null; // rent ads: the deposit (ودیعه) line
+  // The deposit is a second price field, read independently of the first, so it
+  // gets its own honesty flag: the same shapes as price_is_placeholder (at or
+  // under 1,000 Toman, a repeated digit, an int-limit number) with a note
+  // written for the deposit line. Shape-only by design - a small deposit beside
+  // a big rent is a real product on Divar (ودیعه کم، اجاره بالا), not a broken
+  // number. deposit_note is null when the number is real, and the null deposit of
+  // a sale ad or a رهن کامل rental is never flagged.
+  deposit_is_placeholder: boolean;
+  deposit_note: string | null;
+  // Rentals only, and only when the ad's own title says so: this is a room in a
+  // shared home (همخونه / هماتاقی / اتاق برای اجاره) rather than a whole unit, so
+  // its number is a room's price and not a flat's rent. A rent median can leave
+  // those out (market_price does, and says how many); every list still shows
+  // them. A room share that does not say so in its title is indistinguishable
+  // from a cheap small unit - the flag follows the wording.
+  shared_housing: boolean;
+  shared_housing_note: string | null;
   image_count: number;
   has_chat: boolean; // the seller can be messaged
   has_video: boolean;
