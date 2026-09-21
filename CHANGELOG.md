@@ -2,6 +2,15 @@
 
 Releases of the **hosted service** (`https://divar-mcp.mmdju.workers.dev/mcp`). Dates are UTC.
 
+## 0.8.2 - 2026-09-21
+
+A re-check of 0.8.1's three changes against a wider live sweep (12 rent searches, 358 ads, plus four room-query probes). All three stay; two of them were wrong in the details.
+
+- **The two rent flags now ride only when they fire.** `deposit_is_placeholder` / `deposit_note` and `shared_housing` / `shared_housing_note` were present on every card, so those 358 ads carried 356 pairs of dead keys: the deposit flag fired on **2** ads (and both of those also had a fake rent, so it never carried anything on its own), the room-share flag on **56**. They are now absent unless they apply - the same contract as "no news is good news": absent means the deposit line is real, or the title does not claim a room share.
+- **The room-share flag reads more of the wording, and less of it.** The probe found room ads it was walking past - `اجاره اتاق` / `اتاق از واحد` / `اتاق مجرد`, e.g. "اجاره ۱ اتاق از واحد ۷۰ متری  به خانم" - and it follows them now. It also removed the flag's one false positive, `خوابگاه`, whose only live hit was a whole furnished suite let as staff housing ("سوئیت مبله کاشانک مناسب خوابگاه پرسنل"). On an "اتاق مبله" search the flagged shares moved the median rent by **120%** (15,000,000 → 33,000,000) - the flag earns its place. A candidate rule for "اتاق ۱۵ متری مجردی" was probed and left out: it was precise but hit 2 ads in 238, and a rule that cannot move a number is one more thing to break later.
+- **A rent list now says which set it counted.** `shared_housing_ads` counts the ads the call **scanned**, which with `pages` above 1 is a wider window than the page it returns - a live rent search reported 6 room shares while the 10 returned cards held none of them, and the note now names that set instead of letting "here" mean two different things.
+- **A market that is nothing but rooms is labelled as one.** When a rent sample holds no whole unit at all (a "همخونه" search: 28 of 30 ads were room shares), the median is a room's price by definition. `shared_housing_note` now says exactly that instead of only warning that the reading is softer.
+
 ## 0.8.1 - 2026-09-21
 
 - **A shortlist card now says who is selling, and until when.** `get_ads_batch` returned a price, specs and a link but nothing about the seller, so a batch of rent ads could not tell an agency from an owner, or an ad expiring tomorrow from one running another month - even though both facts ride the payload that call already fetched. Each card now carries `expires_at`, `chat_enabled` and `seller_type`, plus `business_token` when the seller is a business, and `compare_ads` carries that ref too.

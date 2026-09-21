@@ -34,7 +34,7 @@ Agent calls:
 { "tool": "search_ads", "arguments": { "query": "آپارتمان", "category": "apartment-rent", "rooms": ["دو"], "min_size_sqm": 70, "limit": 10 } }
 ```
 
-User gets: **matching rentals** with deposit (rahn), monthly rent, size, rooms, district and ad URL - and any ad whose own title says it is a room in a shared home (`همخونه` / `هماتاقی`) comes back flagged (`shared_housing` + note, counted in `shared_housing_ads`), so a room's price is not read as a flat's rent.
+User gets: **matching rentals** with deposit (rahn), monthly rent, size, rooms, district and ad URL - and any ad whose own title says it is a room in a shared home (`همخونه` / `هماتاقی` / `اجاره اتاق` / `اتاق از واحد` / `اتاق مجرد`) comes back flagged (`shared_housing` + note, counted in `shared_housing_ads` - which counts the ads the call **scanned**, not only the page it returned), so a room's price is not read as a flat's rent. A card with no flags is a card whose deposit is real and whose title claims no room share: the flag fields are present only when they fire.
 
 ---
 
