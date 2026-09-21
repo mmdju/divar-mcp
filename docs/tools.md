@@ -51,8 +51,8 @@ Which extra keys are honored **depends on the category** - each leaf has its own
 | `cities` | string[] | Up to 5 cities at once |
 | `districts` | (string\|number)[] | District ids or exact names |
 | `min_price_toman` / `max_price_toman` | number | Price window in Toman |
-| `sort` | string | `newest` · `cheapest` · `most_expensive` |
-| `exchange` | string | `only_exchanges` = swap-only · `exclude_exchanges` = hide swaps |
+| `sort` | string | `newest` · `cheapest` · `most_expensive`. **Needs a `category`** - Divar only orders by price inside one. A sort that cannot be applied comes back in `filters_not_applied` with `sort_note`, never as unordered results presented as sorted (and the `apartment-rent` leaf has no price sort upstream at all) |
+| `exchange` | string | `only_exchanges` = swap-only · `exclude_exchanges` = hide swaps. **Needs a `category` that has an exchange filter** (goods, electronics, cars - real estate does not); otherwise it is named in `filters_not_applied` with `exchange_note` |
 | `seller_type` | string | `personal` · `shop` (goods; sent as `marketplace`) · `real-estate-business` (property). Cars accept **`personal` only** - a `shop` request there comes back in `filters_not_applied` with `seller_type_note` instead of a page that quietly ignored it |
 | `only_photo` | boolean | Only ads with at least one photo |
 | `only_video` | boolean | Filters the **fetched page** - Divar's API has no server-side video filter |

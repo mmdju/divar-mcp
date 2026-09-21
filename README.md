@@ -53,7 +53,7 @@ Notes for agent builders:
 
 Divar's own filters, mapped to real API keys - not a guess at what might work.
 
-**Everything:** `query` (Persian or English), `category` (any of the 237 slugs), `city` or `cities` (up to 5 at once), `districts`, `min/max_price_toman`, `sort` (`newest` · `cheapest` · `most_expensive`), `seller_type`, `exchange` (only / exclude swaps), `only_photo`, `only_video`, `limit`, `page` (1-based, max 50) and `pages` (scan and merge up to 5 pages in one call, deduplicated).
+**Everything:** `query` (Persian or English), `category` (any of the 237 slugs), `city` or `cities` (up to 5 at once), `districts`, `min/max_price_toman`, `sort` (`newest` · `cheapest` · `most_expensive`; needs a `category` - Divar only orders by price inside one), `seller_type`, `exchange` (only / exclude swaps; needs a category that has the filter), `only_photo`, `only_video`, `limit`, `page` (1-based, max 50) and `pages` (scan and merge up to 5 pages in one call, deduplicated).
 
 **Cars:** `brand_model` (resolved from Divar's own model list, e.g. `audi q4`), `min/max_mileage_km`.
 

@@ -53,7 +53,7 @@
 
 همون فیلترهای خود دیوار، وصل به کلیدهای واقعی API - نه حدس اینکه چی کار می‌کنه.
 
-**همه‌جا:** `query` (فارسی یا انگلیسی)، `category` (هر کدوم از ۲۳۷ دسته)، `city` یا `cities` (تا ۵ شهر با هم)، `districts`، `min/max_price_toman`، `sort` (`newest` · `cheapest` · `most_expensive`)، `seller_type`، `exchange` (فقط معاوضه / بدون معاوضه)، `only_photo`، `only_video`، `limit`، `page` (از ۱، حداکثر ۵۰) و `pages` (تا ۵ صفحه تو یه call، ادغام‌شده و بدون تکرار).
+**همه‌جا:** `query` (فارسی یا انگلیسی)، `category` (هر کدوم از ۲۳۷ دسته)، `city` یا `cities` (تا ۵ شهر با هم)، `districts`، `min/max_price_toman`، `sort` (`newest` · `cheapest` · `most_expensive`؛ دسته لازم داره - دیوار فقط داخل یه دسته بر اساس قیمت مرتب می‌کنه)، `seller_type`، `exchange` (فقط معاوضه / بدون معاوضه؛ دسته‌ای لازمه که این فیلتر رو داشته باشه)، `only_photo`، `only_video`، `limit`، `page` (از ۱، حداکثر ۵۰) و `pages` (تا ۵ صفحه تو یه call، ادغام‌شده و بدون تکرار).
 
 **ماشین:** `brand_model` (از لیست مدل‌های خود دیوار، مثلاً `audi q4`) و `min/max_mileage_km`.
 

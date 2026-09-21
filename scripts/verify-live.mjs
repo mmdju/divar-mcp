@@ -110,6 +110,36 @@ async function main() {
   check("card has ad URL", typeof first.url === "string" && first.url.includes("divar.ir/v/"), first.url ?? "");
   check("no phone field anywhere", !/"(phone|mobile|contact_number)"/.test(JSON.stringify(sdata)));
 
+  // 2b. A requested order/filter that Divar cannot honour has to be named, not
+  // silently dropped. Divar only sorts inside a category and rejects an exchange
+  // filter without one, so both of these are dead on a category-less search - the
+  // one thing that must not happen is a card list that looks sorted and is not.
+  const unsorted = await rpc("tools/call", {
+    name: "search_ads",
+    arguments: { query: "پراید", city: "tehran", sort: "cheapest", exchange: "only_exchanges", limit: 3 },
+  });
+  const udata = jsonOf(unsorted.result) ?? {};
+  check(
+    "a sort with no category is declined out loud",
+    udata.filters_not_applied?.sort === "cheapest" && /was NOT applied/.test(String(udata.sort_note)),
+    typeof udata.sort_note === "string" ? udata.sort_note.slice(0, 70) : "no sort_note in the card"
+  );
+  check(
+    "an exchange filter with no category is declined out loud",
+    udata.filters_not_applied?.exchange === "only_exchanges" && /was NOT applied/.test(String(udata.exchange_note)),
+    typeof udata.exchange_note === "string" ? udata.exchange_note.slice(0, 70) : "no exchange_note in the card"
+  );
+  const sorted = await rpc("tools/call", {
+    name: "search_ads",
+    arguments: { query: "موبایل", city: "tehran", category: "mobile-phones", sort: "cheapest", limit: 3 },
+  });
+  const cdata = jsonOf(sorted.result) ?? {};
+  check(
+    "a sort that a category can carry is not reported as missing",
+    cdata.filters_not_applied === undefined && cdata.sort_note === undefined,
+    `items=${(cdata.items ?? []).length}`
+  );
+
   // 3. Details on a real token from search - still no phone.
   if (first.token) {
     const details = await rpc("tools/call", { name: "ad_details", arguments: { token: first.token } });

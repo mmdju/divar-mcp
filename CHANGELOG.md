@@ -2,9 +2,14 @@
 
 Releases of the **hosted service** (`https://divar-mcp.mmdju.workers.dev/mcp`). Dates are UTC.
 
+## 0.7.1 - 2026-09-21
+
+- **A sort or an exchange filter that could not be applied is now said out loud.** `search_ads` accepted `sort` and `exchange` on any query, but Divar only honours them inside a category - sort a category-less search and you get HTTP 200 with the relevance order unchanged; send an exchange filter on one and Divar rejects the request outright (`invalid filter for ROOT: exchange`). The server was building both into the category-filter bag and dropping them before the request left, so `sort: "cheapest"` with no `category` returned ordinary ads with no indication that nothing had been sorted, and a caller that asked to hide swap ads got swap ads. Both are now reported in `filters_not_applied`, with a `sort_note` / `exchange_note` naming the one thing that fixes it: pass a `category` slug, which `divar_suggest` returns for free text. The same silence applied to `sort` on `apartment-rent` (Divar has no price sort for rentals) and is fixed the same way.
+- The tool and parameter descriptions now state that a sort needs a category, so an agent can avoid the dead call in the first place.
+
 ## 0.7.0 - 2026-09-20
 
-_Prepared, not deployed: the hosted worker still answers as 0.4.0, so [scripts/verify-live.mjs](scripts/verify-live.mjs) reports the version mismatch until this release (and the ones below it) is pushed. Every claim below is in the source, none of it is live yet._
+_Deployed 2026-09-21, together with 0.6.0, 0.5.0 and 0.4.1 below it - the hosted worker had been pinned at 0.4.0 until that build._
 
 - **A price field is not always a price, and now the answer says so.** Divar has no "price on request" field, so sellers who will not publish a price type a fake number instead: sort phones or cars by cheapest and the top of the list is a page of ads at `۱,۰۰۰ تومان`, run by shops inviting نقد و اقساط / تماس بگیرید. Those are real listings you can call - so they are never hidden - but their number is not an ask, and reporting it as one made them look like the cheapest things on Divar. Every ad now carries `price_is_placeholder` with the seller's number kept as it was, a `price_placeholder_kind` (`typed_thousand`, `repeated_digits`, `sentinel_number`, or `far_below_market` when it takes a market sample to tell), and a plain-language `price_note`. A list summarises them in `placeholder_price_ads`.
 - **Detection runs in two layers, and none of it is a guess.** The shapes that need no sample are certain: a price at or under 1,000 Toman, a digit repeated five or more times (`۱۱۱,۱۱۱,۱۱۱`), or an integer-limit number (`۴,۲۹۴,۹۶۷,۲۹۵`). The subtle ones are judged against a market sample the tool already fetches - a 10,000-Toman phone is only obviously wrong beside a 320,000,000-Toman median, and that exact case was caught on a live run. Ordinary cheap ads stay untouched: `۸۰۰,۰۰۰ تومان` for a desk is a price, and `price_toman: null` (توافقی) is not a fake number.
@@ -13,7 +18,7 @@ _Prepared, not deployed: the hosted worker still answers as 0.4.0, so [scripts/v
 
 ## 0.6.0 - 2026-09-20
 
-_Prepared, not deployed: the hosted worker still answers as 0.4.0, so [scripts/verify-live.mjs](scripts/verify-live.mjs) reports the version mismatch until this release (and 0.5.0 below it) is pushed. Every claim below is in the source, none of it is live yet._
+_Shipped 2026-09-21 in the 0.7.0 build, after sitting in the source while the hosted worker was still answering as 0.4.0._
 
 - **An ad's specs are no longer half-missing.** Mileage and production year and colour on a car, size and year built and rooms on a home, whether a home has an elevator or parking or storage, and Divar's own condition assessment of a vehicle (engine / chassis / body / gearbox) were all in the payload the server already fetched and none of it was returned. They are now in `specs`, `amenities` and `condition_scores` - the same facts the search filters ask about, visible on the ad that answered them. Divar writes the negative side of an amenity in the same row ("آسانسور ندارد"), so those land in `amenities_absent` rather than in a list whose name promises the ad has them. Rentals come back with the deposit and the monthly rent as two separate numbers (`deposit_toman`, `monthly_rent_toman`) instead of one ambiguous price.
 - **`search_ads` can scan a window of pages in one call (`pages`, up to 5).** Divar only serves page N through the continuation data of the pages before it, so reading a real window of a search used to mean issuing `page+1` calls by hand. `pages` walks and merges them into one deduplicated answer under the same per-call fetch budget the `page` walk has, and it says what it did: `pages_requested`, `pages_returned`, `candidates`. `has_next_page` now reflects the last page Divar actually served - it used to claim more pages existed for searches that had already ended.
@@ -25,7 +30,7 @@ _Prepared, not deployed: the hosted worker still answers as 0.4.0, so [scripts/v
 
 ## 0.5.0 - 2026-09-20
 
-_Prepared, not deployed: the hosted worker still answers as 0.4.0, so [scripts/verify-live.mjs](scripts/verify-live.mjs) reports the mismatch until this release is pushed. Every claim below is in the source, none of it is live yet._
+_Shipped 2026-09-21 in the 0.7.0 build, after sitting in the source while the hosted worker was still answering as 0.4.0._
 
 - **Every Divar category and city is addressable now, not a hand-typed subset.** The server knew 27 category slugs and 36 big cities, so four of Divar's ten verticals (services, personal, community, industrial equipment) had no reachable market and any smaller town was refused outright. It now carries Divar's real taxonomy - **237 categories across 11 roots and 1177 cities** - vendored into the build from Divar's own keyless endpoints. Nothing new to configure, no key, same URL.
 - **A wrong category can no longer look like an answer.** Divar ignores an unrecognized slug and returns the *unfiltered* list, so a typo used to produce a full page of results that answered a question nobody asked. Unknown categories are now refused with the nearest real leaves (`category_note`), and an ambiguous word - "آپارتمان" is both rent and sell - is reported as ambiguous rather than guessed. Bad city ids are refused the same way, and if Divar widens a city behind your back the response says `city_applied: false` instead of pretending the area was filtered.
