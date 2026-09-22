@@ -100,10 +100,21 @@ export interface PriceReading {
   because: PriceSignal[];
 }
 
+// One spec mined from the seller's free-text caption (full ad_details lane only).
+// The official table is often empty - the seller wrote "رم ۸" in prose instead.
+// Present only when something was found; each hit carries its source quote.
+export interface CaptionSpec {
+  key: string; // storage_gb | ram_gb | sim_slots | size_sqm | rooms | floor | mileage_km | model_year | color | condition | deposit_mentioned | rent_mentioned
+  label: string; // Persian label, e.g. "حافظه داخلی"
+  value: string; // extracted value, digits normalised to ASCII, e.g. "256 گیگ"
+  quote: string; // ~60 chars of the caption around the hit
+}
+
 export interface AdDetails extends Omit<AdCard, "badges" | "has_video" | "time_ago"> {
   description: string | null;
   images: string[];
   specs: Array<{ title: string; value: string }>; // کارکرد، مدل (سال تولید)، متراژ، ساخت، اتاق، قیمت پایه ...
+  caption_specs?: CaptionSpec[]; // mined from the caption; official specs always win, absent when nothing mineable
   amenities: string[]; // what the ad says it has: پارکینگ، انباری ...
   amenities_absent: string[]; // what it says it does NOT have: "آسانسور ندارد" - split out, never mixed in
   condition_scores: Array<{ title: string; value: string }>; // Divar's own car assessment

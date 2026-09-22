@@ -109,6 +109,8 @@ The price comes from the ad's own spec rows (`قیمت پایه` for cars, `قی
 
 `specs` is the whole spec table, not a sample: mileage, production year and colour on a car; size, year built and rooms on a home; the price row itself. `amenities` holds the amenity rows the ad says it **has** (پارکینگ / انباری / آسانسور) and `amenities_absent` the ones it says it does **not** ("آسانسور ندارد", "بدون انباری") - Divar writes both in the same row, so they are split rather than mixed. `condition_scores` carries Divar's own condition assessment of a vehicle (موتور / وضعیت شاسی‌ها / بدنه / گیربکس). Alongside them: the Latin district slug, the Persian category name, the canonical `brand_model`, and a `thumbnail` taken from the first carousel image.
 
+Sellers usually skip that table and write the specs into the caption instead ("رم ۸، حافظه ۲۵۶"). The full lane mines the caption beside the table and returns the hits in **`caption_specs`** - each with a `key` (`storage_gb`, `ram_gb`, `size_sqm`, `rooms`, `mileage_km`, `model_year`, `color`, `condition`, …), a Persian `label`, the `value` and a `quote` of the source text, so you judge rather than trust. The official table always wins: a caption hit for a spec the table already has is dropped, never duplicated - and the field is absent, not empty, when the caption holds nothing mineable. Not in the `compact` lane.
+
 The details lane returns **no** `badges`, `has_video` or `time_ago`: those exist only on search rows, and reporting them as `[]` / `false` here would look like something that was checked.
 
 It also answers **whether the ad is still worth chasing**, from the payload the server already fetched:

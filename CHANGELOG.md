@@ -2,6 +2,10 @@
 
 Releases of the **hosted service** (`https://divar-mcp.mmdju.workers.dev/mcp`). Dates are UTC.
 
+## 0.8.4 - 2026-09-22
+
+Sellers usually write specs into the caption, not the form. The full `ad_details` lane now mines the free-text caption beside the official spec table and returns the hits in **`caption_specs`** - storage, RAM, size, rooms, floor, mileage, model year, color, condition and rent/deposit mentions, each with its source quote so you judge rather than trust. The official table always wins (a caption hit it already has is dropped), the field is absent when the caption holds nothing, and the compact lane is unchanged.
+
 ## 0.8.3 - 2026-09-22
 
 The 0.8.1/0.8.2 work taught the server to spot numbers in price fields that are not prices. This release hands the **reading** of those numbers to the caller instead of deciding it for them - the cuts stay, but they are no longer the only reading on offer.
