@@ -2,6 +2,15 @@
 
 Releases of the **hosted service** (`https://divar-mcp.mmdju.workers.dev/mcp`). Dates are UTC.
 
+## 0.8.3 - 2026-09-22
+
+The 0.8.1/0.8.2 work taught the server to spot numbers in price fields that are not prices. This release hands the **reading** of those numbers to the caller instead of deciding it for them - the cuts stay, but they are no longer the only reading on offer.
+
+- **Every finding now travels as evidence, not as a verdict.** A card whose price field is not an asking price carries **`price_reading`** beside the flag: `read` says what the field is (`ask_on_request` - the seller will not state a price - or `suspect` - it looks like one but sits far under a measured market), `strength` grades the evidence (`certain` for a shape that needs no sample at all, `strong` for one measured against a sample this call fetched), and `because` lists the signals with their `evidence`: which rule fired, the median the number was judged against, how many ads that median rests on, the price's share of it, and the 5% threshold itself - published so you can disagree with it. The block appears only when a signal fired: **absent means "no rule spoke about this number", never "this number was verified"**. The flag pair (`price_is_placeholder` / `price_placeholder_kind` / `price_note`) is unchanged.
+- **A page says which shapes it holds.** `placeholder_price_kinds` joins `placeholder_price_ads` on a search page, so the top of a response tells you *what* the fake numbers are - a wall of `۱,۰۰۰ تومان` نقد و اقساط ads, a repeated digit - without opening a card.
+- **Every cut is published as its own reading of the same pool.** `market_price` now reports `sample_view_used` (which reading the `sample` numbers above are), **`sample_views`** (`as_fetched` - every priced ad as typed - plus `honest_asks`, `whole_units` on a rent search, and `honest_whole_units` when both apply, each with `left_out_ads`) and `sample_views_left_out` (up to five tokens per cut, so the dropped ads can be fetched with `get_ads_batch` and judged first-hand). On one live Tehran rent sample the raw reading and the honest one sat **45% apart** (median 27,500,000 against 40,000,000 Toman) - both are in the answer now, and which one to act on is the caller's choice. `compare_ads` does the same for its few-ad middle in `set_median_views`, and `find_best_value` names its price scale in `market_scale.view_used` (carrying `market_scale.views` only when the two readings actually differ).
+- **The arithmetic itself is unchanged.** The same cuts are made and `sample`, `set_median_toman` and `market_scale` hold the same numbers they held before; what is new is that the other readings, the count each one dropped and the tokens of those ads travel with the answer instead of being a decision the server took silently.
+
 ## 0.8.2 - 2026-09-21
 
 A re-check of 0.8.1's three changes against a wider live sweep (12 rent searches, 358 ads, plus four room-query probes). All three stay; two of them were wrong in the details.

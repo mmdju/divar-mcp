@@ -25,6 +25,18 @@ export interface AdCard {
     | "far_below_market" // real-looking, but under 5% of the market median this call measured
     | null;
   price_note: string | null;
+  // The same finding as EVIDENCE, so the caller weighs it instead of trusting a
+  // boolean this server chose. Present only when a signal fired - absent means
+  // "no rule spoke about this number", never "this number was verified".
+  // `read` is one word for what the field is: ask_on_request (the seller will
+  // not state a price) or suspect (it looks like a price but sits far under a
+  // measured market). `strength` grades the evidence: certain (a shape that
+  // needs no sample - ۱,۰۰۰ Toman is nobody's asking price anywhere on Divar),
+  // strong (measured against a sample this call fetched, whose median and size
+  // ride in `evidence`), weak (a softer hint). Nothing is hidden and nothing is
+  // decided here: the ad stays in every list, is still counted, and the
+  // price_is_placeholder pair above keeps working exactly as before.
+  price_reading?: PriceReading;
   district: string | null;
   city: string | null; // null when Divar does not say, never a breadcrumb guess
   time_ago: string | null; // "لحظاتی پیش در صادقیه" (row lane only)
@@ -57,6 +69,35 @@ export interface AdCard {
   badges: string[]; // "boosted" = paid boost, "shop" = store ad
   thumbnail: string | null; // the row's own image
   url: string | null;
+}
+
+export type PriceSignalName =
+  | "typed_thousand"
+  | "repeated_digits"
+  | "sentinel_number"
+  | "far_below_market";
+
+export interface PriceSignal {
+  signal: PriceSignalName;
+  strength: "certain" | "strong" | "weak";
+  fact: string; // one line, with the numbers in it
+  evidence: {
+    rule?: string; // shape signals: which rule fired
+    basis?: string; // market signals: what the median was taken over
+    median_toman?: number;
+    sample_ads?: number;
+    share_percent?: number; // the price as a share of that median
+    threshold_percent?: number; // set at 5, published so you can disagree
+    stated_toman?: number;
+    [key: string]: unknown;
+  };
+}
+
+export interface PriceReading {
+  stated_toman: number; // the seller's own number, never replaced by the reading
+  read: "ask_on_request" | "suspect";
+  strength: "certain" | "strong" | "weak"; // the strongest signal behind it
+  because: PriceSignal[];
 }
 
 export interface AdDetails extends Omit<AdCard, "badges" | "has_video" | "time_ago"> {
