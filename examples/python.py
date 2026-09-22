@@ -11,7 +11,7 @@ import os
 import sys
 import urllib.request
 
-ENDPOINT = os.environ.get("DIVAR_MCP_URL", "https://divar-mcp.mmdju.workers.dev/mcp")
+ENDPOINT = os.environ.get("DIVAR_MCP_URL", "https://divar-mcp.mmdju2.workers.dev/mcp")
 
 
 def rpc(method, params=None, rid=1):

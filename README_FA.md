@@ -4,7 +4,7 @@
 
 یه MCP سرور عمومیه که به ایجنت‌های هوش مصنوعی **دانش واقعی دیوار** می‌ده: جستجو تو **بزرگ‌ترین نیازمندی‌های ایران**، **قیمت به تومان**، دسته‌ها، شهرها و محله‌ها، کارکرد ماشین و مشخصات گوشی، ودیعه و اجاره، جزئیات آگهی، مقایسه و یه حکم زنده درباره‌ی قیمت. **فقط خواندنیه، بدون کلید. بدون لاگین و بدون شماره تلفن - هیچ‌وقت.**
 
-**آدرس زنده:** `https://divar-mcp.mmdju.workers.dev/mcp` (Streamable HTTP، بدون state)
+**آدرس زنده:** `https://divar-mcp.mmdju2.workers.dev/mcp` (Streamable HTTP، بدون state)
 
 **[English version](README.md)** · **[مثال‌ها](examples/sample-calls.md)** · **[مرجع ابزارها](docs/tools.md)** · **[تغییرات](CHANGELOG.md)**
 
@@ -15,7 +15,7 @@
 ```json
 {
   "mcpServers": {
-    "divar": { "url": "https://divar-mcp.mmdju.workers.dev/mcp" }
+    "divar": { "url": "https://divar-mcp.mmdju2.workers.dev/mcp" }
   }
 }
 ```

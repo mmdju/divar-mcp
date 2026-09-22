@@ -4,7 +4,7 @@
 
 A public MCP server that gives AI agents **real Divar knowledge**: search **Iran's largest classifieds**, **prices in Toman**, categories and neighbourhoods, car mileage and phone specs, rental deposit + rent, ad details, side-by-side comparisons and a live price verdict. **Read-only, no key needed. No login, no phone numbers - ever.**
 
-**Live endpoint:** `https://divar-mcp.mmdju.workers.dev/mcp` (Streamable HTTP, stateless)
+**Live endpoint:** `https://divar-mcp.mmdju2.workers.dev/mcp` (Streamable HTTP, stateless)
 
 **[نسخه فارسی](README_FA.md)** · **[Examples](examples/sample-calls.md)** · **[Tool reference](docs/tools.md)** · **[Changelog](CHANGELOG.md)**
 
@@ -15,7 +15,7 @@ Any MCP client, **one URL**. Cline / Cursor / Claude Desktop (`mcp.json` style):
 ```json
 {
   "mcpServers": {
-    "divar": { "url": "https://divar-mcp.mmdju.workers.dev/mcp" }
+    "divar": { "url": "https://divar-mcp.mmdju2.workers.dev/mcp" }
   }
 }
 ```

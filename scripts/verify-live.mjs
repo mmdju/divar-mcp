@@ -11,7 +11,7 @@
 // repo's CHANGELOG. No source needed.
 import { readFileSync } from "node:fs";
 
-const ENDPOINT = process.env.DIVAR_MCP_URL ?? "https://divar-mcp.mmdju.workers.dev/mcp";
+const ENDPOINT = process.env.DIVAR_MCP_URL ?? "https://divar-mcp.mmdju2.workers.dev/mcp";
 const HEALTH = ENDPOINT.replace(/\/mcp\/?$/, "/health");
 const UA = { "user-agent": "divar-mcp-verify/1.0" };
 

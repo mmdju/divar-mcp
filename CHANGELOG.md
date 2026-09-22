@@ -1,6 +1,6 @@
 # Changelog
 
-Releases of the **hosted service** (`https://divar-mcp.mmdju.workers.dev/mcp`). Dates are UTC.
+Releases of the **hosted service** (`https://divar-mcp.mmdju2.workers.dev/mcp`). Dates are UTC.
 
 ## 0.8.4 - 2026-09-22
 
