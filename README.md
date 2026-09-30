@@ -98,7 +98,7 @@ Divar's public web listings (**undocumented, may change without notice**). This 
 
 ## Status
 
-**Free public service** on Cloudflare Workers. **Fair use: 60 requests per minute per IP** on `/mcp` (HTTP 429 with `retry-after`) - enforced in the server *and* by a Cloudflare edge rule, details in [SECURITY.md](SECURITY.md).
+**Free public service** on Cloudflare Workers. **Fair use: 20 requests per minute per IP** on `/mcp` (HTTP 429 with `retry-after`) - counted at the edge and in the server code, details in [SECURITY.md](SECURITY.md).
 
 ## License
 

@@ -10,27 +10,28 @@ Divar MCP is a read-only public service. There is nothing to log in to and no us
 
 ## Rate Limiting (Fair Use)
 
-The public endpoint is guarded in **two** places, with the same budget:
+The public endpoint is guarded by a per-IP budget on `POST /mcp`, counted in two places:
 
-1. **In the server code** - a per-IP sliding window on `POST /mcp` (per isolate, in memory) that answers `429` with a `retry-after` header. This is the guard you get if you deploy this project yourself from source; it is not tucked away in a dashboard.
-2. **At the Cloudflare edge** - a **Rate Limiting rule** (dashboard: Security → WAF → Rate limiting rules) enforced per client IP before the Worker runs, for the hosted deployment:
+1. **At the edge, on the hosted deployment** - Cloudflare's rate-limit binding (`[[ratelimits]]` in `wrangler.toml`) counts every POST per client IP, and its counter is shared across the isolates of an edge location - which is why a burst cannot get around it by landing on many isolates. It answers `429` with a `retry-after` header.
+2. **In the server code, wherever it runs** - the same budget as an in-code sliding window (per isolate, held in memory). It is the whole guard for a deployment made from this source (a plain `wrangler deploy` carries no binding unless you add one) and for the Node `--http` transport, and it is what the Worker falls back to if the edge counter itself fails - a guard that breaks the service it guards is worse than no guard.
 
 
 | Setting | Value |
 |---|---|
-| Match | `http.request.uri.path eq "/mcp"` |
-| Characteristics | IP address |
-| Threshold / period | **60 requests / 60 seconds** |
-| Mitigation | Block, **10-minute** timeout |
+| Match | `POST /mcp` |
+| Key | client IP (`cf-connecting-ip`) |
+| Threshold / period | **20 requests / 60 seconds** |
+| Over the limit | `429` + `retry-after` (seconds) |
 | Counting | All POSTs to `/mcp` count (success or error) |
 
 Notes:
 
 - `/health`, `/` and the preflight (`OPTIONS`) are **not** counted, so dashboards and browser clients are not punished.
-- The plan-level rule matches one path (`/mcp`), not a regex; per-IP is the only characteristic the free plan offers.
-- If you are rate-limited, back off for 10 minutes - repeated hammering while blocked extends the block.
-- The in-code window is per isolate: it bounds what one instance will forward to Divar, while the edge rule is the global one.
-- A well-behaved agent doing one search every few seconds cannot hit this; bursts of parallel tool calls can.
+- 20 a minute is ~3x what a normal agent session uses (requests to Divar are paced near one tool call a second), so ordinary use never notices it; bursts of parallel tool calls can.
+- If you are rate-limited, back off until `retry-after` says you may return - hammering while refused only keeps the count up.
+- The edge counter is per edge location rather than one global number, and that is enough: a client whose calls land on different isolates still lands in the same place. Measured on the live endpoint 2026-09-30: 30 POSTs over one connection - what a real MCP client does - passed 20 and then answered `429` for the rest.
+- A deployment behind its own domain can add a third layer - a **Rate Limiting rule** (dashboard: Security → WAF → Rate limiting rules). The hosted `*.workers.dev` endpoint cannot carry one, because its zone belongs to Cloudflare.
+- The in-code window holds its counters in memory rather than in KV: sharing them through KV would burn the free write quota in minutes, and for abuse-throttling a per-isolate window is enough once the edge counter above is doing the global work.
 
 ## CORS
 

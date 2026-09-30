@@ -2,6 +2,14 @@
 
 Releases of the **hosted service** (`https://divar-mcp.mmdju2.workers.dev/mcp`). Dates are UTC.
 
+## 0.8.5 - 2026-09-30
+
+The fair-use limit on `/mcp` is now **20 requests per minute per IP**, down from 60, answered with `429` and `retry-after` exactly as before. Sixty was set as "ten times what a session needs"; a real agent session paces itself near one tool call a second, so three times that is already generous, and the number exists to stop a flood of parallel calls rather than to ration ordinary use. Nothing else changed - the same tools, the same data, the same pacing of requests to Divar.
+
+The counting changed with the number. That window was per isolate, and a live burst showed what it costs: 24 back-to-back calls from one address all passed, because they landed on different isolates and none of them ever saw 20. The hosted worker now counts the same budget in Cloudflare's rate-limit binding, whose counter is shared by the isolates of an edge location, with the in-code window underneath as the fallback and as the whole guard for a deployment made from this source. Verified on the live endpoint: 30 calls over one connection - what a real MCP client does - passed 20 and then answered `429`.
+
+The docs also used to describe a Cloudflare zone rule "with the same budget" in front of the hosted worker. There was never one: a `*.workers.dev` endpoint cannot carry a zone rule, because its zone belongs to Cloudflare. That paragraph is gone from [SECURITY.md](SECURITY.md), which now describes the two counters that run - and keeps the zone rule where it is useful: an optional extra layer for a deployment behind its own domain.
+
 ## 0.8.4 - 2026-09-22
 
 Sellers usually write specs into the caption, not the form. The full `ad_details` lane now mines the free-text caption beside the official spec table and returns the hits in **`caption_specs`** - storage, RAM, size, rooms, floor, mileage, model year, color, condition and rent/deposit mentions, each with its source quote so you judge rather than trust. The official table always wins (a caption hit it already has is dropped), the field is absent when the caption holds nothing, and the compact lane is unchanged.
