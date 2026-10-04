@@ -21,8 +21,9 @@ Shared conventions:
 - `page` - 1-based page number, max 50. Page 2+ walks real pages (pagination continuation is handled server-side), so deeper pages cost extra requests - and one call walks at most 5 **new** pages, skipping the ones it already has in cache. A short walk is reported as `page_requested` / `page_returned` / `page_note`; call again to continue from where it stopped. `has_next_page` always reflects the last page Divar actually served.
 - `pages` - the "show me more of this search" mode: scan and merge up to 5 pages in one call (deduplicated by token, same per-call fetch budget as `page`). `candidates` says how many distinct ads the answer was chosen from.
 - `city` - English name (`tehran`, `mashhad`), Persian name or numeric id. `cities` takes up to 5 at once.
-- `category` - Divar slug, e.g. `light` (cars), `mobile-phones`, `apartment-rent`, `apartment-sell`. All **237** Divar categories are addressable; ask `divar_suggest` when unsure. A slug that is not a real category is **refused with the nearest real ones** (`filters_not_applied` + `category_note`) instead of quietly searching everything - Divar itself ignores an unknown slug and returns the unfiltered list, which would look like an answer.
+- `category` - Divar slug, e.g. `light` (cars), `mobile-phones`, `apartment-rent`, `apartment-sell`. All **236** Divar categories are addressable; ask `divar_suggest` when unsure. A slug that is not a real category is **named in `filters_not_applied` + `category_note`, and the search runs without a category filter** - visible instead of quietly searching everything, which is what Divar itself does with an unknown slug (it returns the unfiltered list, which would look like an answer). An unknown **city** is different: it is refused outright with the nearest real ones.
 - Cities work the same way for all **1177** of them: a number that is not a city id is refused like a bad name, and if Divar answers a city with a wider area the response says so (`city_applied: false`).
+- **Provinces are a search scope too** (all **31** of them): `city: "khorasan-razavi-province"` (or the Persian name, or the id `880`) searches the whole province - Divar answers with a page spanning its cities, `city_scope_note` says so, and the wider-area alarm stays quiet because that wider answer is what you asked for. `divar_suggest` offers provinces in `city_matches` with `level: "province"`.
 
 ## `divar_suggest`
 
@@ -39,7 +40,7 @@ Returns: `categories` (slug + title + hint), `cities` (name + id), `districts` f
 
 Search ads, get **compact cards**: price in Toman (plus the deposit on a rental), district, badges, photo/video flags, ad URL.
 
-Which extra keys are honored **depends on the category** - each leaf has its own verified allow-list (returned by `divar_suggest` as `category_filters`). Keys a leaf does not support are dropped, not faked.
+Which extra keys are honored **depends on the category** - each leaf has its own verified allow-list (returned by `divar_suggest` as `category_filters`). Keys a leaf does not support are dropped, not faked - and every such key comes back in `filters_not_applied` (under **the input name you used**, e.g. `elevator` or `min_mileage_km`) with a `filters_note` saying which category *would* take it. Nothing you asked for disappears silently.
 
 **Basics (all categories):**
 
@@ -49,7 +50,7 @@ Which extra keys are honored **depends on the category** - each leaf has its own
 | `category` | string | Slug, e.g. `light`, `mobile-phones`, `apartment-rent`, `apartment-sell` |
 | `city` | string | Default `tehran` |
 | `cities` | string[] | Up to 5 cities at once |
-| `districts` | (string\|number)[] | District ids or exact names |
+| `districts` | (string\|number)[] | District ids from `divar_suggest`'s neighbourhoods (numbers or strings both work) |
 | `min_price_toman` / `max_price_toman` | number | Price window in Toman |
 | `sort` | string | `newest` · `cheapest` · `most_expensive`. **Needs a `category`** - Divar only orders by price inside one. A sort that cannot be applied comes back in `filters_not_applied` with `sort_note`, never as unordered results presented as sorted (and the `apartment-rent` leaf has no price sort upstream at all) |
 | `exchange` | string | `only_exchanges` = swap-only · `exclude_exchanges` = hide swaps. **Needs a `category` that has an exchange filter** (goods, electronics, cars - real estate does not); otherwise it is named in `filters_not_applied` with `exchange_note` |
@@ -60,12 +61,23 @@ Which extra keys are honored **depends on the category** - each leaf has its own
 | `pages` | number | Scan and merge this many pages of 24 into one answer (default 1, max 5). Use it instead of repeating `page+1` calls; the union is deduplicated by token and the response reports `pages_requested` / `pages_returned` / `candidates`. Mutually exclusive with `page` above 1 |
 | `limit` | number | Default 10, max 30 |
 
-**Cars (`light`, alias `cars`/`vehicles`):**
+**Cars (`light`, alias `cars` - `vehicles` is its own leaf and lists everything with wheels, helmets and parts):**
 
 | Param | Type | Notes |
 |---|---|---|
 | `brand_model` | string | Exact model, resolved from Divar's own list. Unknown text falls back to plain text search |
 | `min_mileage_km` / `max_mileage_km` | number | Mileage range in km |
+| `color` | string | Persian body colour, e.g. `سفید`, `نوک‌مدادی` (the list Divar shows) |
+| `fuel_type` | string[] | Any of بنزین، گازوئیل، برقی، هیبرید، پلاگین هیبرید، دوگانه‌سوز شرکتی/دستی |
+| `gearbox` | string | `دنده‌ای` or `اتوماتیک` |
+| `chassis_status` | string | e.g. `هر دو سالم و پلمب`، `جلو رنگ‌شده`، `هردو ضربه‌خورده` |
+| `motor_status` | string | `سالم` · `نیاز به تعمیر` · `تعویض شده` |
+| `body_status` | string[] | e.g. `سالم و بی‌خط و خش`، `خط و خش جزیی`، `تمام‌رنگ`، `تصادفی`، `اوراقی` |
+| `brand_model_manufacturer_origin` | string[] | `داخلی` · `وارداتی` · `مونتاژ` |
+| `min_insurance_months` / `max_insurance_months` | number | Third-party insurance months left |
+| `installment` | boolean | Instalment sale (نقد و اقساط) - also phones |
+
+Every enum above accepts the Persian wording **or** the raw upstream key; a value that matches neither is never sent (it would be an HTTP 400) - it comes back in `filters_not_applied` with `options_note` listing what would work.
 
 **Phones (`mobile-phones`):**
 
@@ -88,14 +100,25 @@ Which extra keys are honored **depends on the category** - each leaf has its own
 | `min_credit_toman` / `max_credit_toman` | number | **Rent only:** deposit (rahn) window in Toman |
 | `min_rent_toman` / `max_rent_toman` | number | **Rent only:** monthly rent window in Toman |
 | `parking` / `elevator` / `warehouse` / `balcony` | boolean | Amenities |
+| `min_building_age_years` / `max_building_age_years` | number | **Rent only:** building age (سن بنا) |
+| `min_floor` / `max_floor` | number | **Rent only:** the unit's floor (negative = basement) |
+| `min_building_floors` / `max_building_floors` | number | **Rent only:** floors in the building |
+| `min_units_per_floor` / `max_units_per_floor` | number | **Rent only:** flats per floor |
+| `rebuilt` | boolean | **Rent only:** renovated units (بازسازی‌شده) |
+| `toilet` | string | **Rent only:** `ایرانی` · `فرنگی` · `ایرانی و فرنگی` |
+| `building_direction` | string[] | **Rent only:** `شمالی` · `جنوبی` · `شرقی` · `غربی` |
+| `cooling_system` | string[] | **Rent only:** `کولر گازی` · `کولر آبی` · `داکت اسپلیت` · `اسپلیت` · `فن کوئل` |
+| `heating_system` | string[] | **Rent only:** `بخاری` · `شوفاژ` · `فن کوئل` · `از کف` · `شومینه` … |
+| `floor_type` | string[] | **Rent only:** `سرامیک` · `پارکت چوب` · `پارکت لمینت` · `سنگ` · `موکت` … |
+| `warm_water_provider` | string[] | **Rent only:** `پکیج` · `آبگرم‌کن` · `موتورخانه` |
 
-Each buy leaf honors a **verified subset** of the home keys - e.g. `elevator` is valid on `apartment-sell`/`office-sell` but not on `house-villa-sell`; `rooms` is valid on `apartment-sell`/`office-sell`/`shop-sell` but not on `residential-sell`/`commercial-sell`/`plot-old`. Anything a leaf rejects upstream is dropped rather than sent. `-sale` slugs (`apartment-sale`, `house-villa-sale`, …) fold to their `-sell` leaf automatically.
+Each buy leaf honors a **verified subset** of the home keys - e.g. `elevator` is valid on `apartment-sell`/`office-sell` but not on `house-villa-sell`; `rooms` is valid on `apartment-sell`/`office-sell`/`shop-sell` but not on `residential-sell`/`commercial-sell`/`plot-old`. Anything a leaf rejects upstream is dropped rather than sent - **and named in `filters_not_applied` (under the input you used) with a `filters_note` saying which category would take it**, never dropped in silence. `-sale` slugs (`apartment-sale`, `house-villa-sale`, …) fold to their `-sell` leaf automatically.
 
 **Reading a rent list.** A rent row carries two numbers and the card keeps both: `price_toman` is the monthly rent (the figure Divar shows as the price) and **`deposit_toman`** (ودیعه) sits beside it. Each line has its **own** honesty flag - `price_is_placeholder` / `price_note` for the rent, `deposit_is_placeholder` / `deposit_note` for the deposit - because the two arrive as independent fields: an honest rent can sit beside a typed `۱,۰۰۰` deposit, and the flag for one never speaks for the other. A deposit is only ever flagged **by shape** (at or under 1,000 Toman, a repeated digit, an int-limit number): a small deposit beside a big rent is a real product on Divar (ودیعه کم، اجاره بالا), not a broken number, and there is no deposit median to judge one against. Both honesty flags appear **only when they fire** - absent means "that line is fine" / "the title does not say so" - because measured live over 358 rent ads the deposit flag fired on 2 and the room-share flag on 56, so an always-present pair would be two dead keys on every card in every list. Separately, an ad whose **own title** says it is a room in a shared home (`همخونه` / `هماتاقی` / `اجاره اتاق` / `اتاق از واحد` / `اتاق مجرد`) carries **`shared_housing`** + `shared_housing_note`, and a rent list counts them in `shared_housing_ads` + `shared_housing_note` (a count of the ads the call **scanned**, not only of the page it returned - with `pages` above 1 those are different sets): they are real listings and stay in the list, but their number is a room's price rather than a flat's rent - `market_price` is what keeps them out of a median. The flag follows the wording, so a room share that does not say so in its title looks like any other cheap ad.
 
 **The same finding, as evidence.** Every card whose price field holds something other than an asking price carries **`price_reading`** beside the flag: `read` is one word for what the field is (`ask_on_request` - the seller will not state a price - or `suspect` - it looks like one but sits far under a measured market), `strength` grades the evidence (`certain` for a shape that needs no sample at all, `strong` for one measured against a sample this call fetched, `weak` for a softer hint), and `because` lists the signals with their `evidence`: which rule fired, the median it was judged against, how many ads that median rests on, the price as a share of it, and the 5% threshold itself - published so a caller can disagree with it. The block appears **only when a signal fired**: absent means "no rule spoke about this number", never "this number was verified". Nothing is hidden or ranked away by it - the ad stays in every list and the flag pair above is unchanged - so how to read the number stays the caller's call. A page summarises the same set in `placeholder_price_ads` + `placeholder_price_kinds` + `placeholder_price_note`.
 
-Deliberately absent (probe-tested, do nothing on the API): urgent-only, shop-only search, car production year, server-side video-only, recent-only (`recent_ads` is advertised by Divar's own filter endpoint but returns an identical page - see `scripts/probe-filters.mjs` in the private repo).
+Deliberately absent (probe-tested, do nothing on the API): urgent-only, shop-only search, server-side video-only, recent-only (`recent_ads` is advertised by Divar's own filter endpoint but returns an identical page - see `scripts/probe-filters.mjs` in the private repo). Car **production year** used to be in this list - upstream started honouring it, so `min_model_year` / `max_model_year` are wired as of 2026-10-04.
 
 Also absent because it is **not reachable without login**: listing a single store's ads. `divar.ir/pro/<ref>` is a logged-in surface - the data endpoint answers `403 RBAC` anonymously, and no search filter accepts a business ref.
 

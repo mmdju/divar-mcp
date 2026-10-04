@@ -2,6 +2,20 @@
 
 Releases of the **hosted service** (`https://divar-mcp.mmdju2.workers.dev/mcp`). Dates are UTC.
 
+## 0.9.0 - 2026-10-04
+
+The catalog behind the server now mirrors divar.ir exactly: **236 categories in 10 top-level groups**, taken from the site's own navigation rather than the API's asset list. The two entries the API advertised but Divar refuses with HTTP 400 are gone (`entertainment`, `temporary-shelter` - and the first of those used to shadow the real سرگرمی vertical, so a natural Persian query walked into a 400), and **سفر اشتراکی** joined: the site sells it, the endpoint accepts it, and the server used to refuse it as "not a Divar category". Both wordings of a category now resolve - the site's own label is what you get back in breadcrumbs, the API's spelling still works as input.
+
+**Nothing you ask for disappears silently any more.** Every filter that cannot reach Divar - not just sort, exchange and seller type - is reported in `filters_not_applied` under the input name you used, with a `filters_note` saying which category *would* take it. A district id arriving as a number (exactly what `divar_suggest` hands out) now reaches the request instead of vanishing. An enum value that matches no option is refused with the list of valid ones - never sent, because upstream answers a wrong value with HTTP 400 for the whole search.
+
+**Fifteen more filters, the ones Divar's own filter panel offers**, each proven against the live endpoint before wiring: apartment-rent gains building age, floor (negative for a basement), floors in the building, flats per floor, renovated-only, toilet, direction, cooling, heating, floor type and hot-water provider; cars gain colour, fuel, gearbox, chassis/motor/body condition, manufacturer origin, insurance months, instalment sale - and **model year**, which upstream started honouring after previously ignoring it. Values are accepted in the Persian you see on the site or the raw key, whichever you type.
+
+**Provinces search**: `city: "khorasan-razavi-province"` (or خراسان رضوی, or the id) now searches the whole province - the response says so in `city_scope_note` instead of pretending one city was asked for. Cities resolve under both of Divar's spellings (its canonical URL slug and its row slug).
+
+**`market_price` no longer judges a placeholder**: an ad whose price field holds a typed ۱,۰۰۰ gets `position: unknown` with the reason, instead of a confident "-99.9% below the median" verdict on a number nobody is selling at. The market median still travels with the answer.
+
+Also fixed while in here: the agent-facing instructions no longer claim an unknown *category* is refused (only unknown cities are), cards carry `url` (the docs said `link`), a `page` past 50 reports the number you asked for, and the employment guess lands on the jobs vertical instead of transport. The docs now also describe the second, Cloudflare-side `429` (plain text, no `retry-after`, every path) that was observed once on 2026-10-04 and cleared by itself.
+
 ## 0.8.5 - 2026-09-30
 
 The fair-use limit on `/mcp` is now **20 requests per minute per IP**, down from 60, answered with `429` and `retry-after` exactly as before. Sixty was set as "ten times what a session needs"; a real agent session paces itself near one tool call a second, so three times that is already generous, and the number exists to stop a flood of parallel calls rather than to ration ordinary use. Nothing else changed - the same tools, the same data, the same pacing of requests to Divar.

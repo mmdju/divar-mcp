@@ -28,7 +28,7 @@ Agents running in a browser work too - the endpoint answers CORS preflights (`OP
 
 | Tool | What it answers |
 |---|---|
-| `divar_suggest` | Vague wording to **real search terms, category slugs, city and district ids** - all **237 categories** and **1177 cities** |
+| `divar_suggest` | Vague wording to **real search terms, category slugs, city and district ids** - all **236 categories** and **1177 cities** |
 | `search_ads` | "Show me X", price checks - **filters, sorting, paging**; one call can scan and merge up to 5 pages |
 | `ad_details` | Everything about one ad: **price, specs, amenities, condition scores, photos, map, expiry, chat flag, seller type** |
 | `get_ads_batch` | Shortlist cards for **up to 10 tokens** - feeds `compare_ads`, and each card says who is selling and until when |

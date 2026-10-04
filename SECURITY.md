@@ -26,9 +26,10 @@ The public endpoint is guarded by a per-IP budget on `POST /mcp`, counted in two
 
 Notes:
 
-- `/health`, `/` and the preflight (`OPTIONS`) are **not** counted, so dashboards and browser clients are not punished.
+- `/health`, `/` and the preflight (`OPTIONS`) are **not** counted by either counter above, so dashboards and browser clients are not punished by this service.
 - 20 a minute is ~3x what a normal agent session uses (requests to Divar are paced near one tool call a second), so ordinary use never notices it; bursts of parallel tool calls can.
 - If you are rate-limited, back off until `retry-after` says you may return - hammering while refused only keeps the count up.
+- **A third `429` exists that neither counter produces:** Cloudflare's platform can refuse the whole worker briefly with a plain-text body (`error code: 1027`), **no `retry-after`**, on every path including `/health`. Observed once, 2026-10-04, ~30 minutes, then it cleared by itself; it does not come from this code (the GET paths never touch the counters above). If you hit it: there is no header to read - wait a few minutes and retry once. The lever lives in Cloudflare's dashboard (account → Security / Logs for this worker), not in this repository.
 - The edge counter is per edge location rather than one global number, and that is enough: a client whose calls land on different isolates still lands in the same place. Measured on the live endpoint 2026-09-30: 30 POSTs over one connection - what a real MCP client does - passed 20 and then answered `429` for the rest.
 - A deployment behind its own domain can add a third layer - a **Rate Limiting rule** (dashboard: Security → WAF → Rate limiting rules). The hosted `*.workers.dev` endpoint cannot carry one, because its zone belongs to Cloudflare.
 - The in-code window holds its counters in memory rather than in KV: sharing them through KV would burn the free write quota in minutes, and for abuse-throttling a per-isolate window is enough once the edge counter above is doing the global work.
