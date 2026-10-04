@@ -2,6 +2,12 @@
 
 Releases of the **hosted service** (`https://divar-mcp.mmdju2.workers.dev/mcp`). Dates are UTC.
 
+## 0.9.1 - 2026-10-04
+
+A search called with a `category` slug that does not exist on Divar used to be refused with a generic "a search needs a query, a category, or districts" - which never says where the real problem is. That only happened when the bad slug was the **only** search term; with a `query` or `districts` the search runs and the slug is reported in `filters_not_applied`, exactly as before (and exactly what the docs describe). The refusal now names the slug, lists both candidates when the wording is ambiguous, and says nothing was searched - so the caller knows what to fix instead of being handed a riddle. The instructions and the docs state this one exception.
+
+Found by a live parity run that compared the hosted server against divar.ir itself, request for request; everything else in that run matched the site exactly.
+
 ## 0.9.0 - 2026-10-04
 
 The catalog behind the server now mirrors divar.ir exactly: **236 categories in 10 top-level groups**, taken from the site's own navigation rather than the API's asset list. The two entries the API advertised but Divar refuses with HTTP 400 are gone (`entertainment`, `temporary-shelter` - and the first of those used to shadow the real سرگرمی vertical, so a natural Persian query walked into a 400), and **سفر اشتراکی** joined: the site sells it, the endpoint accepts it, and the server used to refuse it as "not a Divar category". Both wordings of a category now resolve - the site's own label is what you get back in breadcrumbs, the API's spelling still works as input.
