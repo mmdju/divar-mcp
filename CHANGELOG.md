@@ -2,6 +2,14 @@
 
 Releases of the **hosted service** (`https://divar-mcp.mmdju2.workers.dev/mcp`). Dates are UTC.
 
+## 0.9.2 - 2026-10-12
+
+**`GET /mcp` stops feeding the daily budget.** That one path was running over 180,000 requests a day against a plan of 100,000, which is why the whole Cloudflare account kept answering "error code: 1027". It was not crawlers and not the tools: the Streamable HTTP transport says a server answers GET with `text/event-stream` or else `405`, and answering `200` with an HTML page does not read as an error to a client - it reads as a stream that opened and immediately ended. The official TypeScript SDK then reschedules a reconnect with its attempt counter pinned at 0, so `maxRetries: 2` never applies: one GET a second, for as long as the process lives, and two or three open sessions account for the whole total.
+
+`GET /mcp` now answers **405** unless the client asked for `text/html` - which every known client treats as the expected answer, and which is how a browser still gets the page (now with CORS and a cacheable header, where before it had neither). The Node `--http` transport answers the same way. The page itself no longer inlines its four Persian font weights as base64, so it went from 283 KB to 29 KB; they are served once from `/doran-*.woff2`, as the landing page already did.
+
+Worth saying plainly: a cache header could never have fixed this. `*.workers.dev` has no zone, so there is no edge cache in front of the Worker, and a cache hit would have been billed as a standard request anyway. The 405 is the fix.
+
 ## 0.9.1 - 2026-10-04
 
 A search called with a `category` slug that does not exist on Divar used to be refused with a generic "a search needs a query, a category, or districts" - which never says where the real problem is. That only happened when the bad slug was the **only** search term; with a `query` or `districts` the search runs and the slug is reported in `filters_not_applied`, exactly as before (and exactly what the docs describe). The refusal now names the slug, lists both candidates when the wording is ambiguous, and says nothing was searched - so the caller knows what to fix instead of being handed a riddle. The instructions and the docs state this one exception.
