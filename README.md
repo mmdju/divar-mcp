@@ -43,6 +43,7 @@ Notes for agent builders:
 - **All prices are in Toman** (1 Toman = 10 Rial), and a negotiable ad returns `price_toman: null` - never 0. Ads sell in hours, so link the ad URL and let the user confirm.
 - **Not every number in a price field is a price.** A seller who will not publish one types a fake (`۱,۰۰۰ تومان`, repeated digits) - those ads stay in every list, labelled **`price_is_placeholder`** with a `price_note`, and never set a median. The evidence rides along as **`price_reading`**, so the caller judges the number instead of trusting it.
 - **A rent ad has two numbers.** `price_toman` is the monthly rent, `deposit_toman` (ودیعه) rides beside it, each with its own flag. A room in a shared home (`همخونه` / `هماتاقی` / `اجاره اتاق`) carries **`shared_housing`** - a room's price is not a flat's rent.
+- **Divar's November 2026 filters are wired**: car `body_type` (suv, sedan, …), `seller_type: "shop"` on cars (نمایشگاه), and the building facts on `apartment-sell` / `house-villa-sell`. Each was probed against the live endpoint before it reached the server.
 - Start vague queries with **`divar_suggest`**: a district needs an **id**, a name alone will not filter it.
 - Anything with a **budget** or the word **"best"** goes to **`find_best_value`** - plain search only walks the pages you ask for.
 - **Negotiable ads are not hidden.** `find_best_value` ranks priced ads first by default; `include_negotiable: true` adds the توافقی picks last, with `price_toman: null` and an "ask the seller" line.

@@ -54,7 +54,7 @@ Which extra keys are honored **depends on the category** - each leaf has its own
 | `min_price_toman` / `max_price_toman` | number | Price window in Toman |
 | `sort` | string | `newest` · `cheapest` · `most_expensive`. **Needs a `category`** - Divar only orders by price inside one. A sort that cannot be applied comes back in `filters_not_applied` with `sort_note`, never as unordered results presented as sorted (and the `apartment-rent` leaf has no price sort upstream at all) |
 | `exchange` | string | `only_exchanges` = swap-only · `exclude_exchanges` = hide swaps. **Needs a `category` that has an exchange filter** (goods, electronics, cars - real estate does not); otherwise it is named in `filters_not_applied` with `exchange_note` |
-| `seller_type` | string | `personal` · `shop` (goods; sent as `marketplace`) · `real-estate-business` (property). Cars accept **`personal` only** - a `shop` request there comes back in `filters_not_applied` with `seller_type_note` instead of a page that quietly ignored it |
+| `seller_type` | string | `personal` · `shop` (goods; sent as `marketplace`; on cars it rides `car-business` = نمایشگاه, added by Divar in November 2026) · `real-estate-business` (property). A value the leaf does not carry comes back in `filters_not_applied` with `seller_type_note` instead of a page that quietly ignored it |
 | `only_photo` | boolean | Only ads with at least one photo |
 | `only_video` | boolean | Filters the **fetched page** - Divar's API has no server-side video filter |
 | `page` | number | 1-based (default 1, max 50) |
@@ -67,6 +67,7 @@ Which extra keys are honored **depends on the category** - each leaf has its own
 |---|---|---|
 | `brand_model` | string | Exact model, resolved from Divar's own list. Unknown text falls back to plain text search |
 | `min_mileage_km` / `max_mileage_km` | number | Mileage range in km |
+| `body_type` | string[] | Body shape, Persian or English: `سدان` · `هاچ بک` · `شاسی بلند` · `کوپه` · `وانت` · `ون` · `استیشن` (`sedan` · `hatchback` · `suv` · `coupe` · `pickup` · `van` · `wagon` · …) - added by Divar in November 2026, probed before wiring |
 | `color` | string | Persian body colour, e.g. `سفید`, `نوک‌مدادی` (the list Divar shows) |
 | `fuel_type` | string[] | Any of بنزین، گازوئیل، برقی، هیبرید، پلاگین هیبرید، دوگانه‌سوز شرکتی/دستی |
 | `gearbox` | string | `دنده‌ای` or `اتوماتیک` |
@@ -100,19 +101,19 @@ Every enum above accepts the Persian wording **or** the raw upstream key; a valu
 | `min_credit_toman` / `max_credit_toman` | number | **Rent only:** deposit (rahn) window in Toman |
 | `min_rent_toman` / `max_rent_toman` | number | **Rent only:** monthly rent window in Toman |
 | `parking` / `elevator` / `warehouse` / `balcony` | boolean | Amenities |
-| `min_building_age_years` / `max_building_age_years` | number | **Rent only:** building age (سن بنا) |
-| `min_floor` / `max_floor` | number | **Rent only:** the unit's floor (negative = basement) |
-| `min_building_floors` / `max_building_floors` | number | **Rent only:** floors in the building |
-| `min_units_per_floor` / `max_units_per_floor` | number | **Rent only:** flats per floor |
-| `rebuilt` | boolean | **Rent only:** renovated units (بازسازی‌شده) |
-| `toilet` | string | **Rent only:** `ایرانی` · `فرنگی` · `ایرانی و فرنگی` |
-| `building_direction` | string[] | **Rent only:** `شمالی` · `جنوبی` · `شرقی` · `غربی` |
-| `cooling_system` | string[] | **Rent only:** `کولر گازی` · `کولر آبی` · `داکت اسپلیت` · `اسپلیت` · `فن کوئل` |
-| `heating_system` | string[] | **Rent only:** `بخاری` · `شوفاژ` · `فن کوئل` · `از کف` · `شومینه` … |
-| `floor_type` | string[] | **Rent only:** `سرامیک` · `پارکت چوب` · `پارکت لمینت` · `سنگ` · `موکت` … |
-| `warm_water_provider` | string[] | **Rent only:** `پکیج` · `آبگرم‌کن` · `موتورخانه` |
+| `min_building_age_years` / `max_building_age_years` | number | Rent + buy: building age (سن بنا) - rent, `apartment-sell`, `house-villa-sell` |
+| `min_floor` / `max_floor` | number | Rent + `apartment-sell`: the unit's floor (negative = basement) - the villa leaf answers HTTP 400 |
+| `min_building_floors` / `max_building_floors` | number | Rent + `apartment-sell`: floors in the building |
+| `min_units_per_floor` / `max_units_per_floor` | number | Rent + `apartment-sell`: flats per floor |
+| `rebuilt` | boolean | Rent + buy: renovated units (بازسازی‌شده) |
+| `toilet` | string | Rent + buy: `ایرانی` · `فرنگی` · `ایرانی و فرنگی` |
+| `building_direction` | string[] | Rent + buy: `شمالی` · `جنوبی` · `شرقی` · `غربی` |
+| `cooling_system` | string[] | Rent + buy: `کولر گازی` · `کولر آبی` · `داکت اسپلیت` · `اسپلیت` · `فن کوئل` |
+| `heating_system` | string[] | Rent + buy: `بخاری` · `شوفاژ` · `فن کوئل` · `از کف` · `شومینه` … |
+| `floor_type` | string[] | Rent + buy: `سرامیک` · `پارکت چوب` · `پارکت لمینت` · `سنگ` · `موکت` … |
+| `warm_water_provider` | string[] | Rent + buy: `پکیج` · `آبگرم‌کن` · `موتورخانه` |
 
-Each buy leaf honors a **verified subset** of the home keys - e.g. `elevator` is valid on `apartment-sell`/`office-sell` but not on `house-villa-sell`; `rooms` is valid on `apartment-sell`/`office-sell`/`shop-sell` but not on `residential-sell`/`commercial-sell`/`plot-old`. Anything a leaf rejects upstream is dropped rather than sent - **and named in `filters_not_applied` (under the input you used) with a `filters_note` saying which category would take it**, never dropped in silence. `-sale` slugs (`apartment-sale`, `house-villa-sale`, …) fold to their `-sell` leaf automatically.
+Each buy leaf honors a **verified subset** of the home keys - e.g. `elevator` is valid on `apartment-sell`/`office-sell` but not on `house-villa-sell`; `rooms` is valid on `apartment-sell`/`office-sell`/`shop-sell` but not on `residential-sell`/`commercial-sell`/`plot-old`. Since November 2026 the **building facts** (age, toilet, direction, heating/cooling, floor type, hot water, rebuilt) are also live on the sell leaves - `apartment-sell` takes the whole family, `house-villa-sell` takes it without floor/floors-count/units-per-floor (each key probed value-level with disjoint windows before wiring) - while the `residential-sell`/`residential-rent` parents still reject the family with HTTP 400s. Anything a leaf rejects upstream is dropped rather than sent - **and named in `filters_not_applied` (under the input you used) with a `filters_note` saying which category would take it**, never dropped in silence. `-sale` slugs (`apartment-sale`, `house-villa-sale`, …) fold to their `-sell` leaf automatically.
 
 **Reading a rent list.** A rent row carries two numbers and the card keeps both: `price_toman` is the monthly rent (the figure Divar shows as the price) and **`deposit_toman`** (ودیعه) sits beside it. Each line has its **own** honesty flag - `price_is_placeholder` / `price_note` for the rent, `deposit_is_placeholder` / `deposit_note` for the deposit - because the two arrive as independent fields: an honest rent can sit beside a typed `۱,۰۰۰` deposit, and the flag for one never speaks for the other. A deposit is only ever flagged **by shape** (at or under 1,000 Toman, a repeated digit, an int-limit number): a small deposit beside a big rent is a real product on Divar (ودیعه کم، اجاره بالا), not a broken number, and there is no deposit median to judge one against. Both honesty flags appear **only when they fire** - absent means "that line is fine" / "the title does not say so" - because measured live over 358 rent ads the deposit flag fired on 2 and the room-share flag on 56, so an always-present pair would be two dead keys on every card in every list. Separately, an ad whose **own title** says it is a room in a shared home (`همخونه` / `هماتاقی` / `اجاره اتاق` / `اتاق از واحد` / `اتاق مجرد`) carries **`shared_housing`** + `shared_housing_note`, and a rent list counts them in `shared_housing_ads` + `shared_housing_note` (a count of the ads the call **scanned**, not only of the page it returned - with `pages` above 1 those are different sets): they are real listings and stay in the list, but their number is a room's price rather than a flat's rent - `market_price` is what keeps them out of a median. The flag follows the wording, so a room share that does not say so in its title looks like any other cheap ad.
 

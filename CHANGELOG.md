@@ -2,6 +2,16 @@
 
 Releases of the **hosted service** (`https://divar-mcp.mmdju2.workers.dev/mcp`). Dates are UTC.
 
+## 0.10.0 - 2026-11-13
+
+**Three filters Divar added to its own site are wired, each probed against the live endpoint before it reached the server.**
+
+- **Car body type.** The car filter panel gained a body-shape widget, and `search_ads` now takes `body_type`: سدان، هاچ بک، شاسی بلند، کوپه، وانت، ون، استیشن (or sedan / hatchback / suv / coupe / pickup / van / wagon). Persian or English, same as every other enum - a value that matches nothing is returned with the list of what would work, never sent.
+- **A dealership seller on cars.** The docs used to say cars accept `personal` and nothing else; that was true in September and is not any more. The car panel now offers `car-business` (نمایشگاه), so `seller_type: "shop"` on a car search finally filters instead of reporting itself unapplied. The value is read from the vendored panel, so if Divar pulls the option the filter goes back to being refused-and-disclosed rather than breaking a search.
+- **Building facts on the sale leaves.** Building age, floor, floors in the building, flats per floor, renovated, toilet, direction, cooling, heating, floor type and hot-water provider - until now rent-only - work on `apartment-sell` (all of them) and `house-villa-sell` (all but the apartment-tower facts, which the villa leaf rejects). The parent leaves still refuse the family, and the response says so under the input name you used.
+
+Two smaller changes: a request body over the 1 MB cap is refused at the edge with `413` before parsing (parity with the local transport), and city inputs past the five-city cap are named in the response (`cities_ignored`) instead of disappearing. Nothing else moved - same seven tools, same honesty rules, same pacing.
+
 ## 0.9.2 - 2026-10-12
 
 **`GET /mcp` stops feeding the daily budget.** That one path was running over 180,000 requests a day against a plan of 100,000, which is why the whole Cloudflare account kept answering "error code: 1027". It was not crawlers and not the tools: the Streamable HTTP transport says a server answers GET with `text/event-stream` or else `405`, and answering `200` with an HTML page does not read as an error to a client - it reads as a stream that opened and immediately ended. The official TypeScript SDK then reschedules a reconnect with its attempt counter pinned at 0, so `maxRetries: 2` never applies: one GET a second, for as long as the process lives, and two or three open sessions account for the whole total.
