@@ -98,7 +98,7 @@ Agent calls:
 { "tool": "search_ads", "arguments": { "query": "پژو 206", "category": "light", "exchange": "only_exchanges", "seller_type": "personal", "limit": 10 } }
 ```
 
-User gets: **swap-only ads from private sellers**, with district and ad URL each.
+User gets: **swap-only ads from private sellers**, with district and ad URL each. The dealer side works too - since November 2026 the car leaf carries a dealership filter, so `"seller_type": "shop"` on the same call returns نمایشگاه listings (on goods it was always `marketplace`; a value a leaf does not carry is still reported in `filters_not_applied`, never dropped in silence).
 
 ---
 
@@ -114,7 +114,7 @@ User:
 { "tool": "search_ads", "arguments": { "query": "آپارتمان", "category": "apartment-sell", "rooms": ["سه"], "min_size_sqm": 80, "max_price_toman": 8000000000, "sort": "cheapest", "limit": 10 } }
 ```
 
-User gets: **buy listings** with price, size, rooms, district and ad URL. Buy leaves honor a verified subset of the home filters (`apartment-sell` takes size, rooms, parking, elevator, warehouse, balcony); keys a leaf rejects upstream are dropped, not faked.
+User gets: **buy listings** with price, size, rooms, district and ad URL. Buy leaves honor a verified subset of the home filters (`apartment-sell` takes size, rooms, parking, elevator, warehouse, balcony - plus the building facts since November 2026: building age, floor, toilet, direction, heating/cooling, e.g. `"max_building_age_years": 5`); keys a leaf rejects upstream are dropped, not faked.
 
 ---
 
