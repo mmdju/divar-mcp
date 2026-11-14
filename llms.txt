@@ -1,0 +1,26 @@
+# divar-mcp
+
+> A public read-only MCP server giving AI agents access to Iran's Divar classifieds: search, prices, categories, neighborhoods, ad details, comparisons and price verdicts.
+
+Connect any MCP client to the endpoint https://divar-mcp.mmdju2.workers.dev/mcp (Streamable HTTP, stateless, no key or login needed). It exposes 7 read-only tools plus prompts and resources like divar://cities; prices are in Toman, negotiable ads return price_toman null, and vague queries should start with divar_suggest while budget or best-value requests belong in find_best_value. The repo is documentation only (docs/tools.md, docs/architecture.md, examples/sample-calls.md); requests are fair-use capped at 20 per minute per IP.
+
+## Docs
+
+- [divar-mcp README](https://raw.githubusercontent.com/mmdju/divar-mcp/main/README.md): Read-only MCP server for Divar classifieds: search, prices, comparisons, live verdict, no key or login.
+- [Connect in 30 seconds](https://github.com/mmdju/divar-mcp/blob/main/README.md#connect-in-30-seconds): One-URL setup for Cline, Cursor and Claude Desktop, with example queries and CORS support for browser agents.
+- [7 tools](https://github.com/mmdju/divar-mcp/blob/main/README.md#7-tools): Read-only tools, ride-along prompts and resources, plus notes on Toman prices, placeholder prices and deposits.
+- [How it works](https://github.com/mmdju/divar-mcp/blob/main/README.md#how-it-works): Stateless, read-only behaviour, caching, rate-limit pacing and the risks of Divar's undocumented API.
+- [Trust, verified](https://github.com/mmdju/divar-mcp/blob/main/README.md#trust-verified): Verify script covering tools, searches, pricing, privacy sweep and error paths, run hourly in CI.
+- [Privacy](https://github.com/mmdju/divar-mcp/blob/main/README.md#privacy): Why phone numbers never appear: no login, no contact fields; users contact sellers via ad links.
+- [Data source](https://github.com/mmdju/divar-mcp/blob/main/README.md#data-source): Divar's public web listings, undocumented and may change without notice; project not affiliated with Divar.
+- [Status](https://github.com/mmdju/divar-mcp/blob/main/README.md#status): Free hosted service on Cloudflare Workers with fair-use limit of 20 requests per minute per IP.
+- [Architecture](https://raw.githubusercontent.com/mmdju/divar-mcp/main/docs/architecture.md): Stateless, read-only design, response caching, rate-limit handling, privacy by design, and the live verify script.
+- [Tool reference](https://raw.githubusercontent.com/mmdju/divar-mcp/main/docs/tools.md): Input and output types for all 7 tools, shared conventions like limit, page, pages, city, and category.
+
+## Examples
+
+- [Sample conversations (copy-paste)](https://raw.githubusercontent.com/mmdju/divar-mcp/main/examples/sample-calls.md): Eight copy-paste user-to-agent conversation flows with example prices and explanations of tool choices.
+
+## Optional
+
+- [Changelog](https://raw.githubusercontent.com/mmdju/divar-mcp/main/CHANGELOG.md): Release history of the hosted service, covering new filters like body_type, dealership seller, and building facts.
